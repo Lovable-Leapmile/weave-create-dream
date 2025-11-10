@@ -70,9 +70,62 @@ const DocumentEditor = () => {
     }
   }, [id]);
 
+  // Auto-save document
+  useEffect(() => {
+    const autoSave = setTimeout(() => {
+      const data = { title, sections, attachments };
+      localStorage.setItem(`doc-${id}`, JSON.stringify(data));
+      
+      // Update projects list
+      const savedProjects = localStorage.getItem("projects");
+      const projects = savedProjects ? JSON.parse(savedProjects) : [];
+      
+      const projectIndex = projects.findIndex((p: any) => p.id === id);
+      const projectData = {
+        id: id || Date.now().toString(),
+        title,
+        description: sections[0]?.content[0]?.content?.substring(0, 100) || "No description",
+        lastModified: new Date().toLocaleString(),
+        author: "User"
+      };
+      
+      if (projectIndex >= 0) {
+        projects[projectIndex] = projectData;
+      } else {
+        projects.unshift(projectData);
+      }
+      
+      localStorage.setItem("projects", JSON.stringify(projects));
+    }, 1000);
+    
+    return () => clearTimeout(autoSave);
+  }, [title, sections, attachments, id]);
+
   const saveDocument = () => {
     const data = { title, sections, attachments };
     localStorage.setItem(`doc-${id}`, JSON.stringify(data));
+    
+    // Update projects list
+    const savedProjects = localStorage.getItem("projects");
+    const projects = savedProjects ? JSON.parse(savedProjects) : [];
+    
+    const projectIndex = projects.findIndex((p: any) => p.id === id);
+    const projectData = {
+      id: id || Date.now().toString(),
+      title,
+      description: sections[0]?.content[0]?.content?.substring(0, 100) || "No description",
+      lastModified: new Date().toLocaleString(),
+      author: "User"
+    };
+    
+    if (projectIndex >= 0) {
+      projects[projectIndex] = projectData;
+    } else {
+      projects.unshift(projectData);
+    }
+    
+    localStorage.setItem("projects", JSON.stringify(projects));
+    
     toast({
       title: "Document saved",
       description: "Your changes have been saved successfully.",

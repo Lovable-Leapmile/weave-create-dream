@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/Navigation";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
@@ -7,27 +7,21 @@ import { Plus, Search, FileText, Zap, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [recentProjects, setRecentProjects] = useState<Array<{
+    id: string;
+    title: string;
+    description: string;
+    lastModified: string;
+    author: string;
+  }>>([]);
 
-  // Mock data for recent projects
-  const recentProjects = [{
-    id: "1",
-    title: "System Integration Guide",
-    description: "Complete guide for partner system integration",
-    lastModified: "2 hours ago",
-    author: "John Doe"
-  }, {
-    id: "2",
-    title: "API Documentation",
-    description: "RESTful API endpoints and authentication",
-    lastModified: "1 day ago",
-    author: "Jane Smith"
-  }, {
-    id: "3",
-    title: "Robotics Platform Overview",
-    description: "Technical specifications and capabilities",
-    lastModified: "3 days ago",
-    author: "Mike Johnson"
-  }];
+  // Load projects from localStorage
+  useEffect(() => {
+    const savedProjects = localStorage.getItem("projects");
+    if (savedProjects) {
+      setRecentProjects(JSON.parse(savedProjects));
+    }
+  }, []);
   return <div className="min-h-screen bg-background">
       <Navigation />
 
@@ -42,17 +36,13 @@ const Index = () => {
               Create, edit, and publish comprehensive technical documentation with ease.
               Build structured documents with our intuitive interface.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex justify-center">
               <Link to="/editor/new">
                 <Button variant="secondary" size="lg" className="gap-2">
                   <Plus className="h-5 w-5" />
                   New Document
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="gap-2 bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20">
-                <FileText className="h-5 w-5" />
-                View Templates
-              </Button>
             </div>
           </div>
         </div>
