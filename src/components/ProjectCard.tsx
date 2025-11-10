@@ -1,13 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Calendar, User, MoreVertical } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface ProjectCardProps {
   id: string;
@@ -15,9 +16,79 @@ interface ProjectCardProps {
   description: string;
   lastModified: string;
   author: string;
+  onUpdate?: () => void;
 }
 
-export const ProjectCard = ({ id, title, description, lastModified, author }: ProjectCardProps) => {
+export const ProjectCard = ({ id, title, description, lastModified, author, onUpdate }: ProjectCardProps) => {
+  const navigate = useNavigate();
+
+  const handleEdit = () => {
+    navigate(`/editor/${id}`);
+  };
+
+  const handleDuplicate = () => {
+    // Load the original document
+    const originalDoc = localStorage.getItem(`doc-${id}`);
+    if (originalDoc) {
+      const docData = JSON.parse(originalDoc);
+      const newId = Date.now().toString();
+      
+      // Save duplicated document
+      localStorage.setItem(`doc-${newId}`, JSON.stringify({
+        ...docData,
+        title: `${docData.title} (Copy)`
+      }));
+      
+      // Update projects list
+      const savedProjects = localStorage.getItem("projects");
+      const projects = savedProjects ? JSON.parse(savedProjects) : [];
+      projects.unshift({
+        id: newId,
+        title: `${docData.title} (Copy)`,
+        description,
+        lastModified: new Date().toLocaleString(),
+        author
+      });
+      localStorage.setItem("projects", JSON.stringify(projects));
+      
+      toast.success("Project duplicated successfully");
+      onUpdate?.();
+    }
+  };
+
+  const handleExport = () => {
+    const docData = localStorage.getItem(`doc-${id}`);
+    if (docData) {
+      const blob = new Blob([docData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/\s+/g, '-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Project exported successfully");
+    }
+  };
+
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to delete "${title}"?`)) {
+      // Remove document
+      localStorage.removeItem(`doc-${id}`);
+      
+      // Update projects list
+      const savedProjects = localStorage.getItem("projects");
+      if (savedProjects) {
+        const projects = JSON.parse(savedProjects);
+        const updatedProjects = projects.filter((p: any) => p.id !== id);
+        localStorage.setItem("projects", JSON.stringify(updatedProjects));
+      }
+      
+      toast.success("Project deleted successfully");
+      onUpdate?.();
+    }
+  };
   return (
     <Card className="group transition-all duration-300 hover:shadow-hover">
       <CardHeader>
@@ -38,10 +109,10 @@ export const ProjectCard = ({ id, title, description, lastModified, author }: Pr
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Edit</DropdownMenuItem>
-              <DropdownMenuItem>Duplicate</DropdownMenuItem>
-              <DropdownMenuItem>Export</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDuplicate}>Duplicate</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExport}>Export</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={handleDelete}>Delete</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

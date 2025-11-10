@@ -16,11 +16,15 @@ const Index = () => {
   }>>([]);
 
   // Load projects from localStorage
-  useEffect(() => {
+  const loadProjects = () => {
     const savedProjects = localStorage.getItem("projects");
     if (savedProjects) {
       setRecentProjects(JSON.parse(savedProjects));
     }
+  };
+
+  useEffect(() => {
+    loadProjects();
   }, []);
   return <div className="min-h-screen bg-background">
       <Navigation />
@@ -68,7 +72,7 @@ const Index = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {recentProjects.map(project => <ProjectCard key={project.id} {...project} />)}
+            {recentProjects.map(project => <ProjectCard key={project.id} {...project} onUpdate={loadProjects} />)}
           </div>
 
           {recentProjects.length === 0 && <div className="flex flex-col items-center justify-center py-12 text-center">
