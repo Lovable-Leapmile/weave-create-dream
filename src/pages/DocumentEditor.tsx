@@ -484,25 +484,6 @@ const DocumentEditor = () => {
             )}
           </div>
 
-          <Separator className="my-4" />
-
-          <div>
-            <h3 className="mb-3 text-sm font-semibold">Metadata</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <p className="text-muted-foreground">Author</p>
-                <p className="font-medium">John Doe</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Last Modified</p>
-                <p className="font-medium">Just now</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Tags</p>
-                <p className="font-medium">API, Integration</p>
-              </div>
-            </div>
-          </div>
         </aside>
 
         {/* Main Editor Area */}
@@ -641,40 +622,6 @@ const DocumentEditor = () => {
           </div>
         </main>
 
-        {/* Right Sidebar - Preview/Properties */}
-        <aside className="hidden w-64 border-l bg-muted/30 p-4 xl:block">
-          <h3 className="mb-3 text-sm font-semibold">Document Properties</h3>
-          <div className="space-y-4 text-sm">
-            <div>
-              <label className="mb-1 block text-muted-foreground">Status</label>
-              <select className="w-full rounded-md border bg-background px-3 py-2">
-                <option>Draft</option>
-                <option>In Review</option>
-                <option>Published</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-muted-foreground">Version</label>
-              <Input defaultValue="1.0.0" />
-            </div>
-            <div>
-              <label className="mb-1 block text-muted-foreground">Category</label>
-              <select className="w-full rounded-md border bg-background px-3 py-2">
-                <option>Integration</option>
-                <option>API</option>
-                <option>Overview</option>
-              </select>
-            </div>
-          </div>
-
-          <Separator className="my-4" />
-
-          <h3 className="mb-3 text-sm font-semibold">Publishing</h3>
-          <Button variant="hero" className="w-full gap-2">
-            <Upload className="h-4 w-4" />
-            Publish Document
-          </Button>
-        </aside>
       </div>
     </div>
   );
