@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, FileText, ChevronRight, X } from "lucide-react";
+import { Search, FileText, ChevronRight, X, Home, Info, Users, Settings, BookOpen, Lightbulb, Target, Zap, Shield, Award, Briefcase, Globe, Mail, Phone, MessageSquare, Calendar, Database, Code, Layout, PieChart, TrendingUp, Heart, Star, CheckCircle, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { LucideIcon } from "lucide-react";
 
 interface Block {
   id: string;
@@ -288,10 +289,43 @@ const DocumentPreview = () => {
     });
   };
 
+  const getIconForSection = (title: string): LucideIcon => {
+    const lowerTitle = title.toLowerCase();
+    
+    if (lowerTitle.includes("intro") || lowerTitle.includes("home") || lowerTitle.includes("welcome")) return Home;
+    if (lowerTitle.includes("about") || lowerTitle.includes("info")) return Info;
+    if (lowerTitle.includes("team") || lowerTitle.includes("user") || lowerTitle.includes("people")) return Users;
+    if (lowerTitle.includes("setting") || lowerTitle.includes("config")) return Settings;
+    if (lowerTitle.includes("document") || lowerTitle.includes("guide") || lowerTitle.includes("manual")) return BookOpen;
+    if (lowerTitle.includes("idea") || lowerTitle.includes("innovation")) return Lightbulb;
+    if (lowerTitle.includes("goal") || lowerTitle.includes("objective") || lowerTitle.includes("target")) return Target;
+    if (lowerTitle.includes("feature") || lowerTitle.includes("power")) return Zap;
+    if (lowerTitle.includes("security") || lowerTitle.includes("privacy") || lowerTitle.includes("protect")) return Shield;
+    if (lowerTitle.includes("award") || lowerTitle.includes("achievement")) return Award;
+    if (lowerTitle.includes("work") || lowerTitle.includes("business") || lowerTitle.includes("career")) return Briefcase;
+    if (lowerTitle.includes("global") || lowerTitle.includes("world")) return Globe;
+    if (lowerTitle.includes("email") || lowerTitle.includes("mail")) return Mail;
+    if (lowerTitle.includes("phone") || lowerTitle.includes("call") || lowerTitle.includes("contact")) return Phone;
+    if (lowerTitle.includes("message") || lowerTitle.includes("chat")) return MessageSquare;
+    if (lowerTitle.includes("calendar") || lowerTitle.includes("schedule") || lowerTitle.includes("event")) return Calendar;
+    if (lowerTitle.includes("data") || lowerTitle.includes("storage")) return Database;
+    if (lowerTitle.includes("code") || lowerTitle.includes("development") || lowerTitle.includes("api")) return Code;
+    if (lowerTitle.includes("design") || lowerTitle.includes("layout") || lowerTitle.includes("ui")) return Layout;
+    if (lowerTitle.includes("chart") || lowerTitle.includes("analytics") || lowerTitle.includes("report")) return PieChart;
+    if (lowerTitle.includes("trend") || lowerTitle.includes("growth")) return TrendingUp;
+    if (lowerTitle.includes("favorite") || lowerTitle.includes("love")) return Heart;
+    if (lowerTitle.includes("star") || lowerTitle.includes("rating")) return Star;
+    if (lowerTitle.includes("success") || lowerTitle.includes("complete")) return CheckCircle;
+    if (lowerTitle.includes("alert") || lowerTitle.includes("warning") || lowerTitle.includes("important")) return AlertCircle;
+    
+    return FileText;
+  };
+
   const renderSectionNav = (sectionList: Section[], depth = 0) => {
     return sectionList.map((section) => {
       const hasChildren = section.children && section.children.length > 0;
       const isExpanded = expandedSections.has(section.id);
+      const Icon = depth === 0 ? getIconForSection(section.title) : null;
 
       return (
         <div key={section.id}>
@@ -310,14 +344,15 @@ const DocumentPreview = () => {
             )}
             <button
               onClick={() => setActiveSection(section.id)}
-              className={`flex flex-1 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
+              className={`flex flex-1 items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
                 activeSection === section.id
                   ? "bg-muted font-semibold text-primary"
                   : "text-muted-foreground"
               }`}
               style={{ paddingLeft: hasChildren ? "0" : `${depth * 12 + 28}px` }}
             >
-              {section.title}
+              <span>{section.title}</span>
+              {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
             </button>
           </div>
           {hasChildren && isExpanded && (
