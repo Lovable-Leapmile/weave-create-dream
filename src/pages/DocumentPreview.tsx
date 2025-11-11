@@ -329,11 +329,29 @@ const DocumentPreview = () => {
 
       return (
         <div key={section.id}>
-          <div className="flex items-center gap-1">
+          <button
+            onClick={() => setActiveSection(section.id)}
+            className={`w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
+              activeSection === section.id
+                ? "bg-muted font-semibold text-primary"
+                : "text-muted-foreground"
+            }`}
+            style={{ paddingLeft: `${depth * 12 + 12}px` }}
+          >
+            {/* Icon on the left */}
+            {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
+            
+            {/* Section title - left aligned and flexible */}
+            <span className="flex-1 text-left truncate">{section.title}</span>
+            
+            {/* Arrow on the right for expandable sections */}
             {hasChildren && (
               <button
-                onClick={() => toggleSection(section.id)}
-                className="p-1 hover:bg-muted rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSection(section.id);
+                }}
+                className="p-1 hover:bg-muted-foreground/10 rounded flex-shrink-0"
               >
                 <ChevronRight
                   className={`h-4 w-4 transition-transform ${
@@ -342,21 +360,10 @@ const DocumentPreview = () => {
                 />
               </button>
             )}
-            <button
-              onClick={() => setActiveSection(section.id)}
-              className={`flex flex-1 items-center justify-between gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
-                activeSection === section.id
-                  ? "bg-muted font-semibold text-primary"
-                  : "text-muted-foreground"
-              }`}
-              style={{ paddingLeft: hasChildren ? "0" : `${depth * 12 + 28}px` }}
-            >
-              <span>{section.title}</span>
-              {Icon && <Icon className="h-4 w-4 flex-shrink-0" />}
-            </button>
-          </div>
+          </button>
+          
           {hasChildren && isExpanded && (
-            <div style={{ paddingLeft: "12px" }}>
+            <div className="ml-2">
               {renderSectionNav(section.children, depth + 1)}
             </div>
           )}
@@ -436,10 +443,10 @@ const DocumentPreview = () => {
         )}
       </header>
 
-      <div className="flex flex-1">
-        {/* Left Sidebar - Navigation */}
-        <aside className="w-64 border-r bg-muted/30">
-          <ScrollArea className="h-[calc(100vh-4rem)]">
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar - Navigation - Fixed */}
+        <aside className="w-64 border-r bg-muted/30 flex flex-col h-[calc(100vh-4rem)]">
+          <ScrollArea className="flex-1">
             <div className="p-4">
               <h2 className="mb-4 text-lg font-bold">{title}</h2>
               <nav className="space-y-1">
@@ -449,8 +456,8 @@ const DocumentPreview = () => {
           </ScrollArea>
         </aside>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Main Content Area - Scrollable */}
+        <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
           <div className="container max-w-4xl px-8 py-12">
             {currentSection && (
               <div>
