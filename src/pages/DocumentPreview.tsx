@@ -374,7 +374,7 @@ const DocumentPreview = () => {
             <img 
               src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" 
               alt="Leapmile Robotics" 
-              className="h-10"
+              className="h-7"
             />
           </Link>
 
