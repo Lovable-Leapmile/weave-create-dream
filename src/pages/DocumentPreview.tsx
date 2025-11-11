@@ -376,7 +376,7 @@ const DocumentPreview = () => {
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
           <Link to="/" className="flex items-center gap-2">
             <img 
               src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" 
@@ -385,19 +385,19 @@ const DocumentPreview = () => {
             />
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link to="/" className="transition-colors hover:text-primary">
-              Home
-            </Link>
-            <a href="#" className="transition-colors hover:text-primary">
-              Website
-            </a>
-            <a href="#contact" className="transition-colors hover:text-primary">
-              Contact Us
-            </a>
-          </nav>
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-6 text-sm">
+              <button onClick={() => window.location.reload()} className="transition-colors hover:text-primary">
+                Home
+              </button>
+              <a href="https://www.leapmile.com" className="transition-colors hover:text-primary">
+                Website
+              </a>
+              <a href="https://www.leapmile.com/#contact" className="transition-colors hover:text-primary">
+                Contact Us
+              </a>
+            </nav>
 
-          <div className="flex items-center gap-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -458,7 +458,7 @@ const DocumentPreview = () => {
 
         {/* Main Content Area - Scrollable */}
         <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
-          <div className="container max-w-4xl px-8 py-12">
+          <div className="container max-w-7xl mx-auto px-8 py-12">
             {currentSection && (
               <div>
                 <h1 className="mb-6 text-4xl font-bold">{currentSection.title}</h1>
@@ -467,12 +467,12 @@ const DocumentPreview = () => {
                 </div>
 
                 {/* Next/Previous Navigation */}
-                <div className="mt-12 pt-8 border-t flex items-center justify-between">
+                <div className="mt-12 pt-8 border-t flex gap-4">
                   {previousSection ? (
                     <Button
                       variant="outline"
                       onClick={() => setActiveSection(previousSection.id)}
-                      className="gap-2"
+                      className="gap-2 flex-1"
                     >
                       <ChevronRight className="h-4 w-4 rotate-180" />
                       <div className="text-left">
@@ -481,14 +481,14 @@ const DocumentPreview = () => {
                       </div>
                     </Button>
                   ) : (
-                    <div />
+                    <div className="flex-1" />
                   )}
 
                   {nextSection ? (
                     <Button
                       variant="outline"
                       onClick={() => setActiveSection(nextSection.id)}
-                      className="gap-2"
+                      className="gap-2 flex-1"
                     >
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground">Next</div>
@@ -497,8 +497,13 @@ const DocumentPreview = () => {
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   ) : (
-                    <div />
+                    <div className="flex-1" />
                   )}
+                </div>
+
+                {/* Last Updated Date */}
+                <div className="mt-8 pt-4 text-sm text-muted-foreground text-center border-t">
+                  Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </div>
               </div>
             )}
