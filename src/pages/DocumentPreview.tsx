@@ -2,13 +2,15 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, FileText, ChevronRight } from "lucide-react";
+import { Search, FileText, ChevronRight, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card } from "@/components/ui/card";
 
 interface Block {
   id: string;
-  type: "paragraph" | "h1" | "h2" | "h3";
+  type: "paragraph" | "h1" | "h2" | "h3" | "image" | "pdf" | "link" | "video";
   content: string;
+  attachmentData?: string;
 }
 
 interface Section {
@@ -22,7 +24,7 @@ interface Section {
 interface Attachment {
   id: string;
   name: string;
-  type: "image" | "pdf" | "link";
+  type: "image" | "pdf" | "link" | "video";
   data: string;
 }
 
@@ -35,6 +37,8 @@ const DocumentPreview = () => {
   const [activeSection, setActiveSection] = useState("1");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Array<{sectionId: string; sectionTitle: string; matchText: string}>>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem(`doc-${id}`);
@@ -48,6 +52,53 @@ const DocumentPreview = () => {
       }
     }
   }, [id]);
+
+  // Search functionality
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const results: Array<{sectionId: string; sectionTitle: string; matchText: string}> = [];
+    const searchLower = searchQuery.toLowerCase();
+
+    const searchInSections = (sectionList: Section[]) => {
+      sectionList.forEach(section => {
+        // Search in section title
+        if (section.title.toLowerCase().includes(searchLower)) {
+          results.push({
+            sectionId: section.id,
+            sectionTitle: section.title,
+            matchText: section.title
+          });
+        }
+
+        // Search in section content
+        section.content.forEach(block => {
+          if (block.content.toLowerCase().includes(searchLower)) {
+            const matchIndex = block.content.toLowerCase().indexOf(searchLower);
+            const start = Math.max(0, matchIndex - 30);
+            const end = Math.min(block.content.length, matchIndex + searchQuery.length + 30);
+            const matchText = (start > 0 ? "..." : "") + block.content.substring(start, end) + (end < block.content.length ? "..." : "");
+            
+            results.push({
+              sectionId: section.id,
+              sectionTitle: section.title,
+              matchText
+            });
+          }
+        });
+
+        if (section.children) {
+          searchInSections(section.children);
+        }
+      });
+    };
+
+    searchInSections(sections);
+    setSearchResults(results);
+  }, [searchQuery, sections]);
 
   const renderBlockContent = (content: string) => {
     const parts = content.split(/(\[(?:IMAGE|PDF):[^\]]+\])/g);
@@ -128,6 +179,76 @@ const DocumentPreview = () => {
           <h3 key={block.id} className="text-xl font-bold mb-2">
             {renderBlockContent(block.content)}
           </h3>
+        );
+      }
+      if (block.type === "image" && block.attachmentData) {
+        return (
+          <div key={block.id} className="my-4">
+            <img
+              src={block.attachmentData}
+              alt={block.content}
+              className="max-w-full rounded-lg border shadow-card"
+            />
+            <p className="mt-2 text-sm text-muted-foreground">{block.content}</p>
+          </div>
+        );
+      }
+      if (block.type === "pdf" && block.attachmentData) {
+        return (
+          <div key={block.id} className="my-4 rounded-lg border bg-muted p-4">
+            <div className="flex items-center gap-3">
+              <FileText className="h-6 w-6 text-primary" />
+              <div className="flex-1">
+                <p className="font-medium">{block.content}</p>
+                <p className="text-sm text-muted-foreground">PDF Document</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const link = document.createElement("a");
+                  link.href = block.attachmentData!;
+                  link.download = block.content;
+                  link.click();
+                }}
+              >
+                Download
+              </Button>
+            </div>
+          </div>
+        );
+      }
+      if (block.type === "video" && block.attachmentData) {
+        return (
+          <div key={block.id} className="my-4">
+            <video
+              controls
+              className="max-w-full rounded-lg border shadow-card"
+              src={block.attachmentData}
+            >
+              Your browser does not support the video tag.
+            </video>
+            <p className="mt-2 text-sm text-muted-foreground">{block.content}</p>
+          </div>
+        );
+      }
+      if (block.type === "link") {
+        return (
+          <div key={block.id} className="my-4 rounded-lg border bg-muted p-4">
+            <div className="flex items-center gap-3">
+              <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <a
+                href={block.content}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-primary hover:underline"
+              >
+                {block.content}
+              </a>
+            </div>
+          </div>
         );
       }
       return (
@@ -214,40 +335,70 @@ const DocumentPreview = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-hero">
-                <FileText className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Leapmile Robotics
-              </span>
-            </Link>
+          <Link to="/" className="flex items-center gap-2">
+            <img 
+              src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" 
+              alt="Leapmile Robotics" 
+              className="h-10"
+            />
+          </Link>
 
-            <nav className="hidden md:flex items-center gap-6 text-sm">
-              <Link to="/" className="transition-colors hover:text-primary">
-                Home
-              </Link>
-              <a href="#" className="transition-colors hover:text-primary">
-                Website
-              </a>
-              <a href="#contact" className="transition-colors hover:text-primary">
-                Contact Us
-              </a>
-            </nav>
-          </div>
+          <nav className="hidden md:flex items-center gap-6 text-sm">
+            <Link to="/" className="transition-colors hover:text-primary">
+              Home
+            </Link>
+            <a href="#" className="transition-colors hover:text-primary">
+              Website
+            </a>
+            <a href="#contact" className="transition-colors hover:text-primary">
+              Contact Us
+            </a>
+          </nav>
 
           <div className="flex items-center gap-4">
-            <div className="relative hidden sm:block">
+            <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search documentation..."
+                placeholder="Search in document..."
                 className="w-[200px] pl-8 lg:w-[300px]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1 h-6 w-6"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
+        
+        {/* Search Results Dropdown */}
+        {searchResults.length > 0 && (
+          <div className="absolute right-4 top-16 z-50 w-[400px]">
+            <Card className="max-h-[400px] overflow-y-auto p-2">
+              {searchResults.map((result, idx) => (
+                <button
+                  key={idx}
+                  className="w-full text-left p-3 rounded hover:bg-muted transition-colors"
+                  onClick={() => {
+                    setActiveSection(result.sectionId);
+                    setSearchQuery("");
+                  }}
+                >
+                  <div className="font-medium text-sm text-primary mb-1">{result.sectionTitle}</div>
+                  <div className="text-xs text-muted-foreground line-clamp-2">{result.matchText}</div>
+                </button>
+              ))}
+            </Card>
+          </div>
+        )}
       </header>
 
       <div className="flex flex-1">

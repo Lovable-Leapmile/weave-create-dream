@@ -25,8 +25,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Block {
   id: string;
-  type: "paragraph" | "h1" | "h2" | "h3";
+  type: "paragraph" | "h1" | "h2" | "h3" | "image" | "pdf" | "link" | "video";
   content: string;
+  attachmentData?: string; // For storing file data
 }
 
 interface Section {
@@ -40,8 +41,8 @@ interface Section {
 interface Attachment {
   id: string;
   name: string;
-  type: "image" | "pdf" | "link";
-  data: string; // base64 for images/pdfs, url for links
+  type: "image" | "pdf" | "link" | "video";
+  data: string; // base64 for images/pdfs/videos, url for links
 }
 
 const DocumentEditor = () => {
@@ -56,8 +57,8 @@ const DocumentEditor = () => {
   const [showBlockTypeMenu, setShowBlockTypeMenu] = useState(false);
   const [currentBlockId, setCurrentBlockId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [pendingAttachmentType, setPendingAttachmentType] = useState<"image" | "pdf" | "video" | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load document from localStorage
   useEffect(() => {
@@ -232,6 +233,13 @@ const DocumentEditor = () => {
   };
 
   const addBlock = (sectionId: string, type: Block["type"]) => {
+    if (type === "image" || type === "pdf" || type === "video") {
+      setPendingAttachmentType(type);
+      fileInputRef.current?.click();
+      setShowBlockTypeMenu(false);
+      return;
+    }
+
     const newBlock: Block = {
       id: Date.now().toString(),
       type,
@@ -242,6 +250,23 @@ const DocumentEditor = () => {
     if (section) {
       updateSection(sectionId, "content", [...section.content, newBlock]);
       setCurrentBlockId(newBlock.id);
+    }
+    setShowBlockTypeMenu(false);
+  };
+
+  const addLinkBlock = (sectionId: string) => {
+    const url = prompt("Enter the URL:");
+    if (!url) return;
+
+    const newBlock: Block = {
+      id: Date.now().toString(),
+      type: "link",
+      content: url,
+    };
+
+    const section = findSection(sectionId);
+    if (section) {
+      updateSection(sectionId, "content", [...section.content, newBlock]);
     }
     setShowBlockTypeMenu(false);
   };
@@ -264,77 +289,32 @@ const DocumentEditor = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !pendingAttachmentType || !currentSection) return;
 
     const reader = new FileReader();
     reader.onload = () => {
-      const newAttachment: Attachment = {
+      const newBlock: Block = {
         id: Date.now().toString(),
-        name: file.name,
-        type: "image",
-        data: reader.result as string,
+        type: pendingAttachmentType,
+        content: file.name,
+        attachmentData: reader.result as string,
       };
-      setAttachments([...attachments, newAttachment]);
+
+      updateSection(currentSection.id, "content", [...currentSection.content, newBlock]);
+      
       toast({
-        title: "Image attached",
-        description: `${file.name} has been added to attachments.`,
+        title: `${pendingAttachmentType.charAt(0).toUpperCase() + pendingAttachmentType.slice(1)} added`,
+        description: `${file.name} has been added to the document.`,
       });
+      
+      setPendingAttachmentType(null);
     };
     reader.readAsDataURL(file);
     e.target.value = "";
   };
 
-  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const newAttachment: Attachment = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: "pdf",
-        data: reader.result as string,
-      };
-      setAttachments([...attachments, newAttachment]);
-      toast({
-        title: "PDF attached",
-        description: `${file.name} has been added to attachments.`,
-      });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
-  const insertAttachment = (attachment: Attachment, blockId: string) => {
-    if (!currentSection) return;
-
-    let insertText = "";
-    if (attachment.type === "image") {
-      insertText = `[IMAGE:${attachment.id}:${attachment.name}]`;
-    } else if (attachment.type === "pdf") {
-      insertText = `[PDF:${attachment.id}:${attachment.name}]`;
-    }
-
-    const block = currentSection.content.find((b) => b.id === blockId);
-    if (block) {
-      updateBlock(currentSection.id, blockId, block.content + insertText);
-      toast({
-        title: "Attachment inserted",
-        description: `${attachment.name} has been inserted.`,
-      });
-    }
-  };
-
-  const deleteAttachment = (attachmentId: string) => {
-    setAttachments(attachments.filter((a) => a.id !== attachmentId));
-    toast({
-      title: "Attachment removed",
-      description: "The attachment has been deleted.",
-    });
-  };
 
   const currentSection = findSection(activeSection);
 
@@ -453,7 +433,7 @@ const DocumentEditor = () => {
         <aside className="w-64 border-r bg-muted/30 p-4">
           <div className="mb-4">
             <h3 className="mb-3 text-sm font-semibold">Document Structure</h3>
-            <ScrollArea className="h-[300px]">
+            <ScrollArea className="h-[calc(100vh-200px)]">
               <div className="space-y-1">{renderSections(sections)}</div>
             </ScrollArea>
             <Button
@@ -466,77 +446,6 @@ const DocumentEditor = () => {
               Add Section
             </Button>
           </div>
-
-          <Separator className="my-4" />
-
-          <div className="mb-4">
-            <h3 className="mb-3 text-sm font-semibold">Attachments</h3>
-            <div className="space-y-2">
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-              <input
-                ref={pdfInputRef}
-                type="file"
-                accept=".pdf"
-                className="hidden"
-                onChange={handlePdfUpload}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start gap-2"
-                onClick={() => imageInputRef.current?.click()}
-              >
-                <ImageIcon className="h-4 w-4" />
-                Add Image
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start gap-2"
-                onClick={() => pdfInputRef.current?.click()}
-              >
-                <FileText className="h-4 w-4" />
-                Add PDF
-              </Button>
-            </div>
-
-            {attachments.length > 0 && (
-              <ScrollArea className="mt-4 h-[200px]">
-                <div className="space-y-2">
-                  {attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="group flex items-center justify-between gap-2 rounded-md border bg-background p-2 text-sm"
-                    >
-                      <div className="flex flex-1 items-center gap-2 overflow-hidden text-left">
-                        {attachment.type === "image" ? (
-                          <ImageIcon className="h-4 w-4 flex-shrink-0" />
-                        ) : (
-                          <FileText className="h-4 w-4 flex-shrink-0" />
-                        )}
-                        <span className="truncate" title={attachment.name}>{attachment.name}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100"
-                        onClick={() => deleteAttachment(attachment.id)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </div>
-
         </aside>
 
         {/* Main Editor Area */}
@@ -556,6 +465,14 @@ const DocumentEditor = () => {
                     />
 
                     <div className="space-y-4">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,video/*,.pdf"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      
                       {currentSection.content.map((block) => (
                         <div key={block.id} className="group relative">
                           {block.type === "h1" && (
@@ -590,6 +507,66 @@ const DocumentEditor = () => {
                               placeholder="Start typing paragraph..."
                             />
                           )}
+                          {block.type === "image" && block.attachmentData && (
+                            <div className="my-4">
+                              <img 
+                                src={block.attachmentData} 
+                                alt={block.content}
+                                className="max-w-full rounded-lg border shadow-card"
+                              />
+                              <p className="mt-2 text-sm text-muted-foreground">{block.content}</p>
+                            </div>
+                          )}
+                          {block.type === "pdf" && block.attachmentData && (
+                            <div className="my-4 rounded-lg border bg-muted p-4">
+                              <div className="flex items-center gap-3">
+                                <FileText className="h-6 w-6 text-primary" />
+                                <div className="flex-1">
+                                  <p className="font-medium">{block.content}</p>
+                                  <p className="text-sm text-muted-foreground">PDF Document</p>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const link = document.createElement("a");
+                                    link.href = block.attachmentData!;
+                                    link.download = block.content;
+                                    link.click();
+                                  }}
+                                >
+                                  Download
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          {block.type === "video" && block.attachmentData && (
+                            <div className="my-4">
+                              <video 
+                                controls 
+                                className="max-w-full rounded-lg border shadow-card"
+                                src={block.attachmentData}
+                              >
+                                Your browser does not support the video tag.
+                              </video>
+                              <p className="mt-2 text-sm text-muted-foreground">{block.content}</p>
+                            </div>
+                          )}
+                          {block.type === "link" && (
+                            <div className="my-4 rounded-lg border bg-muted p-4">
+                              <div className="flex items-center gap-3">
+                                <LinkIcon className="h-6 w-6 text-primary" />
+                                <a 
+                                  href={block.content} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex-1 text-primary hover:underline"
+                                >
+                                  {block.content}
+                                </a>
+                              </div>
+                            </div>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
@@ -598,28 +575,6 @@ const DocumentEditor = () => {
                           >
                             <X className="h-3 w-3" />
                           </Button>
-
-                          {/* Attachment insert buttons for this block */}
-                          {attachments.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-2 opacity-0 group-hover:opacity-100">
-                              {attachments.map((attachment) => (
-                                <Button
-                                  key={attachment.id}
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 text-xs"
-                                  onClick={() => insertAttachment(attachment, block.id)}
-                                >
-                                  {attachment.type === "image" ? (
-                                    <ImageIcon className="h-3 w-3 mr-1" />
-                                  ) : (
-                                    <FileText className="h-3 w-3 mr-1" />
-                                  )}
-                                  Insert {attachment.name.substring(0, 15)}...
-                                </Button>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       ))}
 
@@ -654,6 +609,39 @@ const DocumentEditor = () => {
                               onClick={() => addBlock(currentSection.id, "h3")}
                             >
                               Heading 3
+                            </Button>
+                            <Separator className="my-1" />
+                            <Button
+                              variant="ghost"
+                              className="justify-start gap-2"
+                              onClick={() => addBlock(currentSection.id, "image")}
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                              Image
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="justify-start gap-2"
+                              onClick={() => addBlock(currentSection.id, "pdf")}
+                            >
+                              <FileText className="h-4 w-4" />
+                              PDF
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="justify-start gap-2"
+                              onClick={() => addLinkBlock(currentSection.id)}
+                            >
+                              <LinkIcon className="h-4 w-4" />
+                              Link
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="justify-start gap-2"
+                              onClick={() => addBlock(currentSection.id, "video")}
+                            >
+                              <Code className="h-4 w-4" />
+                              Video (MP4)
                             </Button>
                           </div>
                         </Card>
