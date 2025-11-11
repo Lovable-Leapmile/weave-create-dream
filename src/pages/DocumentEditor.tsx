@@ -19,9 +19,21 @@ import {
   Link as LinkIcon,
   Code,
   X,
+  AlertCircle,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Block {
   id: string;
@@ -59,6 +71,9 @@ const DocumentEditor = () => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [pendingAttachmentType, setPendingAttachmentType] = useState<"image" | "pdf" | "video" | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteSectionId, setDeleteSectionId] = useState<string | null>(null);
 
   // Load document from localStorage
   useEffect(() => {
@@ -201,6 +216,7 @@ const DocumentEditor = () => {
     if (activeSection === sectionId) {
       setActiveSection(sections[0].id);
     }
+    setDeleteSectionId(null);
   };
 
   const updateSection = (id: string, field: keyof Section, value: any) => {
@@ -232,11 +248,12 @@ const DocumentEditor = () => {
     return undefined;
   };
 
-  const addBlock = (sectionId: string, type: Block["type"]) => {
+  const addBlock = (sectionId: string, type: Block["type"], afterBlockId?: string) => {
     if (type === "image" || type === "pdf" || type === "video") {
       setPendingAttachmentType(type);
       fileInputRef.current?.click();
       setShowBlockTypeMenu(false);
+      setInsertAfterBlockId(null);
       return;
     }
 
@@ -248,13 +265,21 @@ const DocumentEditor = () => {
 
     const section = findSection(sectionId);
     if (section) {
-      updateSection(sectionId, "content", [...section.content, newBlock]);
+      if (afterBlockId) {
+        const blockIndex = section.content.findIndex((b) => b.id === afterBlockId);
+        const newContent = [...section.content];
+        newContent.splice(blockIndex + 1, 0, newBlock);
+        updateSection(sectionId, "content", newContent);
+      } else {
+        updateSection(sectionId, "content", [...section.content, newBlock]);
+      }
       setCurrentBlockId(newBlock.id);
     }
     setShowBlockTypeMenu(false);
+    setInsertAfterBlockId(null);
   };
 
-  const addLinkBlock = (sectionId: string) => {
+  const addLinkBlock = (sectionId: string, afterBlockId?: string) => {
     const url = prompt("Enter the URL:");
     if (!url) return;
 
@@ -266,9 +291,17 @@ const DocumentEditor = () => {
 
     const section = findSection(sectionId);
     if (section) {
-      updateSection(sectionId, "content", [...section.content, newBlock]);
+      if (afterBlockId) {
+        const blockIndex = section.content.findIndex((b) => b.id === afterBlockId);
+        const newContent = [...section.content];
+        newContent.splice(blockIndex + 1, 0, newBlock);
+        updateSection(sectionId, "content", newContent);
+      } else {
+        updateSection(sectionId, "content", [...section.content, newBlock]);
+      }
     }
     setShowBlockTypeMenu(false);
+    setInsertAfterBlockId(null);
   };
 
   const updateBlock = (sectionId: string, blockId: string, content: string) => {
@@ -287,6 +320,7 @@ const DocumentEditor = () => {
       const updatedContent = section.content.filter((block) => block.id !== blockId);
       updateSection(sectionId, "content", updatedContent);
     }
+    setDeleteConfirmId(null);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -375,7 +409,7 @@ const DocumentEditor = () => {
               variant="ghost"
               size="icon"
               className="h-6 w-6 opacity-0 group-hover:opacity-100"
-              onClick={() => deleteSection(section.id)}
+              onClick={() => setDeleteSectionId(section.id)}
               title="Delete section"
             >
               <Trash2 className="h-3 w-3" />
@@ -473,7 +507,7 @@ const DocumentEditor = () => {
                         onChange={handleFileUpload}
                       />
                       
-                      {currentSection.content.map((block) => (
+                      {currentSection.content.map((block, index) => (
                         <div key={block.id} className="group relative">
                           {block.type === "h1" && (
                             <Input
@@ -567,14 +601,97 @@ const DocumentEditor = () => {
                               </div>
                             </div>
                           )}
+                          
+                          {/* Delete button */}
                           <Button
                             variant="ghost"
                             size="icon"
                             className="absolute -right-8 top-1 h-6 w-6 opacity-0 group-hover:opacity-100"
-                            onClick={() => deleteBlock(currentSection.id, block.id)}
+                            onClick={() => setDeleteConfirmId(block.id)}
                           >
                             <X className="h-3 w-3" />
                           </Button>
+                          
+                          {/* Insert content button - shows at the end of block on hover */}
+                          <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Popover open={insertAfterBlockId === block.id} onOpenChange={(open) => !open && setInsertAfterBlockId(null)}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full border border-border bg-background hover:bg-accent mt-2"
+                                  onClick={() => setInsertAfterBlockId(block.id)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-56 p-2" align="center">
+                                <div className="flex flex-col gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start text-sm"
+                                    onClick={() => addBlock(currentSection.id, "paragraph", block.id)}
+                                  >
+                                    Paragraph
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start text-sm"
+                                    onClick={() => addBlock(currentSection.id, "h1", block.id)}
+                                  >
+                                    Heading 1
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start text-sm"
+                                    onClick={() => addBlock(currentSection.id, "h2", block.id)}
+                                  >
+                                    Heading 2
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start text-sm"
+                                    onClick={() => addBlock(currentSection.id, "h3", block.id)}
+                                  >
+                                    Heading 3
+                                  </Button>
+                                  <Separator className="my-1" />
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start gap-2 text-sm"
+                                    onClick={() => addBlock(currentSection.id, "image", block.id)}
+                                  >
+                                    <ImageIcon className="h-4 w-4" />
+                                    Image
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start gap-2 text-sm"
+                                    onClick={() => addBlock(currentSection.id, "pdf", block.id)}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    PDF
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start gap-2 text-sm"
+                                    onClick={() => addLinkBlock(currentSection.id, block.id)}
+                                  >
+                                    <LinkIcon className="h-4 w-4" />
+                                    Link
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start gap-2 text-sm"
+                                    onClick={() => addBlock(currentSection.id, "video", block.id)}
+                                  >
+                                    <Code className="h-4 w-4" />
+                                    Video (MP4)
+                                  </Button>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
                         </div>
                       ))}
 
@@ -664,6 +781,62 @@ const DocumentEditor = () => {
         </main>
 
       </div>
+
+      {/* Delete Block Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Delete Content Block
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this content block? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirmId && currentSection) {
+                  deleteBlock(currentSection.id, deleteConfirmId);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Section Confirmation Dialog */}
+      <AlertDialog open={deleteSectionId !== null} onOpenChange={(open) => !open && setDeleteSectionId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Delete Section
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this section? All content within this section will be permanently deleted. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteSectionId) {
+                  deleteSection(deleteSectionId);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Section
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

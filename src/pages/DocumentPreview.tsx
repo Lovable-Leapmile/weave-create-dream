@@ -472,12 +472,12 @@ const DocumentPreview = () => {
                     <Button
                       variant="outline"
                       onClick={() => setActiveSection(previousSection.id)}
-                      className="gap-2 flex-1"
+                      className="gap-2 flex-1 h-auto py-4"
                     >
-                      <ChevronRight className="h-4 w-4 rotate-180" />
-                      <div className="text-left">
+                      <ChevronRight className="h-5 w-5 rotate-180 flex-shrink-0" />
+                      <div className="text-left flex-1 min-w-0">
                         <div className="text-xs text-muted-foreground">Previous</div>
-                        <div className="font-medium">{previousSection.title}</div>
+                        <div className="font-medium truncate">{previousSection.title}</div>
                       </div>
                     </Button>
                   ) : (
@@ -488,13 +488,13 @@ const DocumentPreview = () => {
                     <Button
                       variant="outline"
                       onClick={() => setActiveSection(nextSection.id)}
-                      className="gap-2 flex-1"
+                      className="gap-2 flex-1 h-auto py-4"
                     >
-                      <div className="text-right">
+                      <div className="text-right flex-1 min-w-0">
                         <div className="text-xs text-muted-foreground">Next</div>
-                        <div className="font-medium">{nextSection.title}</div>
+                        <div className="font-medium truncate">{nextSection.title}</div>
                       </div>
-                      <ChevronRight className="h-4 w-4" />
+                      <ChevronRight className="h-5 w-5 flex-shrink-0" />
                     </Button>
                   ) : (
                     <div className="flex-1" />
