@@ -22,6 +22,7 @@ export type Database = {
           id: string
           last_modified: string | null
           title: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           id?: string
           last_modified?: string | null
           title: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           id?: string
           last_modified?: string | null
           title?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
