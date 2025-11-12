@@ -512,29 +512,43 @@ const DocumentEditor = () => {
 
     const allSections = flattenSections(sections);
 
+    // Escape HTML to prevent XSS
+    const escapeHtml = (text: string): string => {
+      const map: { [key: string]: string } = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, (m) => map[m]);
+    };
+
     const renderBlockHTML = (block: Block): string => {
       if (block.type === "h1") {
-        return `<h1 class="text-3xl font-bold mb-4">${block.content}</h1>`;
+        return `<h1 class="text-3xl font-bold mb-4">${escapeHtml(block.content)}</h1>`;
       }
       if (block.type === "h2") {
-        return `<h2 class="text-2xl font-bold mb-3">${block.content}</h2>`;
+        return `<h2 class="text-2xl font-bold mb-3">${escapeHtml(block.content)}</h2>`;
       }
       if (block.type === "h3") {
-        return `<h3 class="text-xl font-bold mb-2">${block.content}</h3>`;
+        return `<h3 class="text-xl font-bold mb-2">${escapeHtml(block.content)}</h3>`;
       }
       if (block.type === "image" && block.attachmentData) {
-        return `<div class="my-4"><img src="${block.attachmentData}" alt="${block.content}" class="max-w-full rounded-lg border" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);"/><p class="mt-2 text-sm text-gray-500">${block.content}</p></div>`;
+        return `<div class="my-4"><img src="${block.attachmentData}" alt="${escapeHtml(block.content)}" class="max-w-full rounded-lg border" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);"/><p class="mt-2 text-sm text-gray-500">${escapeHtml(block.content)}</p></div>`;
       }
       if (block.type === "pdf" && block.attachmentData) {
-        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><div class="flex-1"><p class="font-medium">${block.content}</p><p class="text-sm text-gray-500">PDF Document</p></div><a href="${block.attachmentData}" download="${block.content}" class="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-100">Download</a></div></div>`;
+        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><div class="flex-1"><p class="font-medium">${escapeHtml(block.content)}</p><p class="text-sm text-gray-500">PDF Document</p></div><a href="${block.attachmentData}" download="${escapeHtml(block.content)}" class="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-100">Download</a></div></div>`;
       }
       if (block.type === "video" && block.attachmentData) {
-        return `<div class="my-4"><video controls class="max-w-full rounded-lg border" src="${block.attachmentData}" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);">Your browser does not support the video tag.</video><p class="mt-2 text-sm text-gray-500">${block.content}</p></div>`;
+        return `<div class="my-4"><video controls class="max-w-full rounded-lg border" src="${block.attachmentData}" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);">Your browser does not support the video tag.</video><p class="mt-2 text-sm text-gray-500">${escapeHtml(block.content)}</p></div>`;
       }
       if (block.type === "link") {
-        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg><a href="${block.content}" target="_blank" rel="noopener noreferrer" class="flex-1 text-blue-700 hover:underline">${block.content}</a></div></div>`;
+        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg><a href="${escapeHtml(block.content)}" target="_blank" rel="noopener noreferrer" class="flex-1 text-blue-700 hover:underline">${escapeHtml(block.content)}</a></div></div>`;
       }
-      return `<p class="text-base leading-7 mb-4 whitespace-pre-wrap">${block.content}</p>`;
+      // Handle content with potential image/PDF placeholders
+      const processedContent = block.content.replace(/\[(?:IMAGE|PDF):[^\]]+\]/g, '');
+      return `<p class="text-base leading-7 mb-4 whitespace-pre-wrap">${escapeHtml(processedContent).replace(/\n/g, '<br>')}</p>`;
     };
 
     const renderSectionHTML = (section: Section, index: number): string => {
@@ -543,40 +557,73 @@ const DocumentEditor = () => {
       const next = index < allSections.length - 1 ? allSections[index + 1] : null;
       
       return `
-        <section id="section-${section.id}" class="section-content py-8">
-          <h1 class="mb-6 text-4xl font-bold">${section.title}</h1>
+        <div id="section-${section.id}" class="section-content" style="display: ${index === 0 ? 'block' : 'none'};">
+          <h1 class="mb-6 text-4xl font-bold">${escapeHtml(section.title)}</h1>
           <div class="prose prose-lg max-w-none">
             ${contentHTML}
           </div>
           <div class="mt-12 pt-8 border-t flex gap-4">
             ${prev ? `
-              <a href="#section-${prev.id}" onclick="scrollToSection('${prev.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50">
+              <button onclick="showSection('${prev.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50 text-left">
                 <svg class="h-5 w-5 rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                <div class="text-left flex-1"><div class="text-xs text-gray-500">Previous</div><div class="font-medium">${prev.title}</div></div>
-              </a>
+                <div class="text-left flex-1 min-w-0"><div class="text-xs text-gray-500">Previous</div><div class="font-medium truncate">${escapeHtml(prev.title)}</div></div>
+              </button>
             ` : '<div class="flex-1"></div>'}
             ${next ? `
-              <a href="#section-${next.id}" onclick="scrollToSection('${next.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50">
-                <div class="text-right flex-1"><div class="text-xs text-gray-500">Next</div><div class="font-medium">${next.title}</div></div>
+              <button onclick="showSection('${next.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50 text-right">
+                <div class="text-right flex-1 min-w-0"><div class="text-xs text-gray-500">Next</div><div class="font-medium truncate">${escapeHtml(next.title)}</div></div>
                 <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-              </a>
+              </button>
             ` : '<div class="flex-1"></div>'}
           </div>
-        </section>
+          <div class="mt-8 pt-4 text-sm text-gray-500 text-center border-t">
+            Last updated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+        </div>
       `;
     };
 
-    const renderSidebarNav = (sectionList: Section[], depth = 0, isFirst = false): string => {
-      return sectionList.map((section, index) => {
+    // Helper function to find all parent section IDs for a given section
+    const findParentSectionIds = (targetId: string, sectionList: Section[], parentIds: string[] = []): string[] | null => {
+      for (const section of sectionList) {
+        if (section.id === targetId) {
+          return parentIds;
+        }
+        if (section.children) {
+          const found = findParentSectionIds(targetId, section.children, [...parentIds, section.id]);
+          if (found !== null) {
+            return found;
+          }
+        }
+      }
+      return null;
+    };
+
+    const firstSectionId = allSections[0]?.id || '';
+    const parentSectionIds = findParentSectionIds(firstSectionId, sections) || [];
+    const sectionsToExpand = new Set([...parentSectionIds]);
+
+    // Build section tree for JavaScript (handles arbitrary nesting depth)
+    const buildSectionTree = (sectionList: Section[]): Array<{ id: string; children?: any }> => {
+      return sectionList.map(s => ({
+        id: s.id,
+        children: s.children && s.children.length > 0 ? buildSectionTree(s.children) : undefined
+      }));
+    };
+    const sectionTreeForJS = buildSectionTree(sections);
+
+    const renderSidebarNav = (sectionList: Section[], depth = 0): string => {
+      return sectionList.map((section) => {
         const hasChildren = section.children && section.children.length > 0;
-        const isFirstSection = isFirst && index === 0 && depth === 0;
+        const isFirst = depth === 0 && sectionList.indexOf(section) === 0;
+        const isExpanded = sectionsToExpand.has(section.id);
         return `
           <div>
-            <a href="#section-${section.id}" onclick="scrollToSection('${section.id}'); return false;" data-section="${section.id}" class="sidebar-btn${isFirstSection ? ' active' : ''} w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 text-gray-600" style="padding-left: ${depth * 12 + 12}px;">
-              <span class="flex-1 text-left">${section.title}</span>
-              ${hasChildren ? '<svg class="h-4 w-4 rotate-90 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>' : ''}
-            </a>
-            ${hasChildren ? `<div>${renderSidebarNav(section.children, depth + 1, false)}</div>` : ''}
+            <button onclick="showSection('${section.id}'); return false;" data-section="${section.id}" class="sidebar-btn${isFirst ? ' active' : ''} w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 ${isFirst ? 'bg-gray-100 font-semibold text-blue-800' : 'text-gray-600'}" style="padding-left: ${depth * 12 + 12}px;">
+              <span class="flex-1 text-left break-words">${escapeHtml(section.title)}</span>
+              ${hasChildren ? `<button onclick="event.stopPropagation(); toggleSubSection('${section.id}');" class="p-1 hover:bg-gray-200 rounded flex-shrink-0"><svg id="chevron-${section.id}" class="h-4 w-4 transition-transform${isExpanded ? ' rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>` : ''}
+            </button>
+            ${hasChildren ? `<div id="subsections-${section.id}" class="${isExpanded ? '' : 'hidden'} ml-2">${renderSidebarNav(section.children, depth + 1)}</div>` : ''}
           </div>
         `;
       }).join('');
@@ -587,14 +634,15 @@ const DocumentEditor = () => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
-    .sidebar-btn.active { background: #f3f4f6; font-weight: 600; color: #1e3a8a; }
-    .section-content { display: block; }
+    .sidebar-btn.active { background: #f3f4f6 !important; font-weight: 600; color: #1e3a8a !important; }
+    .section-content { display: none; }
+    .section-content.active { display: block; }
   </style>
 </head>
 <body class="bg-white text-gray-800">
@@ -626,9 +674,9 @@ const DocumentEditor = () => {
     <!-- Sidebar -->
     <aside class="w-64 border-r bg-gray-50 h-[calc(100vh-4rem)] overflow-y-auto">
       <div class="p-4">
-        <h2 class="mb-4 text-lg font-bold">${title}</h2>
+        <h2 class="mb-4 text-lg font-bold">${escapeHtml(title)}</h2>
         <nav class="space-y-1" id="sidebarNav">
-          ${renderSidebarNav(sections, 0, true)}
+          ${renderSidebarNav(sections, 0)}
         </nav>
       </div>
     </aside>
@@ -642,20 +690,103 @@ const DocumentEditor = () => {
   </div>
 
   <script>
-    let currentSection = '${allSections[0]?.id || '1'}';
+    let currentSection = '${firstSectionId}';
     const sections = ${JSON.stringify(allSections.map(s => ({ id: s.id, title: s.title, content: s.content.map(b => ({ type: b.type, content: b.content })) })))};
+    const sectionTree = ${JSON.stringify(sectionTreeForJS)};
+    const expandedSections = new Set(${JSON.stringify(Array.from(sectionsToExpand))});
 
-    function scrollToSection(sectionId) {
-      document.querySelectorAll('.sidebar-btn').forEach(el => el.classList.remove('active'));
-      const btn = document.querySelector('[data-section="' + sectionId + '"]');
-      if (btn) btn.classList.add('active');
-      const el = document.getElementById('section-' + sectionId);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Initialize expanded sections on page load
+    function initializeExpandedSections() {
+      expandedSections.forEach(sectionId => {
+        const subsectionsEl = document.getElementById('subsections-' + sectionId);
+        const chevronEl = document.getElementById('chevron-' + sectionId);
+        if (subsectionsEl) {
+          subsectionsEl.classList.remove('hidden');
+        }
+        if (chevronEl) {
+          chevronEl.style.transform = 'rotate(90deg)';
+        }
+      });
     }
 
-    // Backward compatibility for existing calls
+    // Helper to find parent section IDs for a given section
+    function findParentIds(sectionId) {
+      function search(sectionList, targetId, currentPath = []) {
+        if (!sectionList) return null;
+        for (const section of sectionList) {
+          if (section.id === targetId) {
+            return currentPath;
+          }
+          if (section.children) {
+            const found = search(section.children, targetId, [...currentPath, section.id]);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+      return search(sectionTree, sectionId) || [];
+    }
+
     function showSection(sectionId) {
-      scrollToSection(sectionId);
+      // Expand all parent sections
+      const parentIds = findParentIds(sectionId);
+      parentIds.forEach(parentId => {
+        const subsectionsEl = document.getElementById('subsections-' + parentId);
+        const chevronEl = document.getElementById('chevron-' + parentId);
+        if (subsectionsEl && chevronEl) {
+          subsectionsEl.classList.remove('hidden');
+          chevronEl.style.transform = 'rotate(90deg)';
+          expandedSections.add(parentId);
+        }
+      });
+      
+      // Hide all sections
+      document.querySelectorAll('.section-content').forEach(el => {
+        el.style.display = 'none';
+        el.classList.remove('active');
+      });
+      
+      // Show selected section
+      const sectionEl = document.getElementById('section-' + sectionId);
+      if (sectionEl) {
+        sectionEl.style.display = 'block';
+        sectionEl.classList.add('active');
+      }
+      
+      // Update active button in sidebar
+      document.querySelectorAll('.sidebar-btn').forEach(el => {
+        el.classList.remove('active');
+        el.classList.remove('bg-gray-100', 'font-semibold', 'text-blue-800');
+        el.classList.add('text-gray-600');
+      });
+      
+      const btn = document.querySelector('[data-section="' + sectionId + '"]');
+      if (btn) {
+        btn.classList.add('active', 'bg-gray-100', 'font-semibold', 'text-blue-800');
+        btn.classList.remove('text-gray-600');
+      }
+      
+      currentSection = sectionId;
+      
+      // Scroll to top of main content
+      document.getElementById('mainContent').scrollTop = 0;
+    }
+
+    function toggleSubSection(sectionId) {
+      const subsectionsEl = document.getElementById('subsections-' + sectionId);
+      const chevronEl = document.getElementById('chevron-' + sectionId);
+      
+      if (subsectionsEl && chevronEl) {
+        if (subsectionsEl.classList.contains('hidden')) {
+          subsectionsEl.classList.remove('hidden');
+          chevronEl.style.transform = 'rotate(90deg)';
+          expandedSections.add(sectionId);
+        } else {
+          subsectionsEl.classList.add('hidden');
+          chevronEl.style.transform = 'rotate(0deg)';
+          expandedSections.delete(sectionId);
+        }
+      }
     }
 
     function clearSearch() {
@@ -683,7 +814,7 @@ const DocumentEditor = () => {
           results.push({ id: section.id, title: section.title, match: section.title });
         }
         section.content.forEach(block => {
-          if (block.content.toLowerCase().includes(query)) {
+          if (block.content && block.content.toLowerCase().includes(query)) {
             const idx = block.content.toLowerCase().indexOf(query);
             const start = Math.max(0, idx - 30);
             const end = Math.min(block.content.length, idx + query.length + 30);
@@ -707,8 +838,11 @@ const DocumentEditor = () => {
       }
     });
 
-    // Initialize
-    showSection(currentSection);
+    // Initialize - expand sections and show first section
+    initializeExpandedSections();
+    if (currentSection) {
+      showSection(currentSection);
+    }
   </script>
 </body>
 </html>`;
