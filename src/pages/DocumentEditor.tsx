@@ -659,17 +659,20 @@ const DocumentEditor = () => {
         const showIcon = depth === 0; // Only show icon for top-level sections
         
         return `
-          <div>
-            <button onclick="showSection('${section.id}'); closeMobileMenu(); return false;" data-section="${section.id}" class="sidebar-btn${isFirst ? ' active' : ''} w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 ${isFirst ? 'bg-gray-100 font-semibold text-blue-800' : 'text-gray-600'}" style="padding-left: ${depth * 12 + 12}px;">
-              ${showIcon ? getIconForSection(section.title) : ''}
-              <span class="flex-1 text-left break-words">${escapeHtml(section.title)}</span>
+          <div class="w-full">
+            <div class="flex items-start gap-1" style="padding-left: ${depth * 12 + 12}px;">
+              <button onclick="showSection('${section.id}'); closeMobileMenu(); return false;" data-section="${section.id}"
+                class="sidebar-btn${isFirst ? ' active' : ''} flex-1 flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 ${isFirst ? 'bg-gray-100 font-semibold text-blue-800' : 'text-gray-600'}">
+                ${showIcon ? getIconForSection(section.title) : ''}
+                <span class="flex-1 text-left break-words">${escapeHtml(section.title)}</span>
+              </button>
               ${hasChildren ? `
-                <button onclick="event.stopPropagation(); toggleSubSection('${section.id}');" class="p-1 hover:bg-gray-200 rounded flex-shrink-0 mt-0.5">
-                  <svg id="chevron-${section.id}" class="h-4 w-4 transition-transform${isExpanded ? ' rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <button onclick=\"event.stopPropagation(); toggleSubSection('${section.id}');\" class=\"chev-btn p-1 hover:bg-gray-200 rounded flex-shrink-0 mt-0.5\" aria-label=\"Toggle subsections\">
+                  <svg id=\"chevron-${section.id}\" class=\"h-4 w-4 transition-transform${isExpanded ? ' rotate-90' : ''}\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 5l7 7-7 7\"></path></svg>
                 </button>
               ` : ''}
-            </button>
-            ${hasChildren ? `<div id="subsections-${section.id}" class="${isExpanded ? '' : 'hidden'} ml-2">${renderSidebarNav(section.children!, depth + 1)}</div>` : ''}
+            </div>
+            ${hasChildren ? `<div id=\"subsections-${section.id}\" class=\"${isExpanded ? '' : 'hidden'} ml-2\">${renderSidebarNav(section.children!, depth + 1)}</div>` : ''}
           </div>
         `;
       }).join('');
@@ -700,6 +703,14 @@ const DocumentEditor = () => {
       background: #f3f4f6 !important;
       font-weight: 600 !important;
       color: #1e3a8a !important;
+    }
+    .chev-btn { 
+      background: transparent; 
+      border: 0; 
+      color: #6b7280; 
+    }
+    .chev-btn:hover { 
+      color: #111827; 
     }
     
     .section-content { display: none; }
