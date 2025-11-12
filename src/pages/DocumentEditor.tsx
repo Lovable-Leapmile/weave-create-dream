@@ -541,9 +541,10 @@ const DocumentEditor = () => {
       const contentHTML = section.content.map(renderBlockHTML).join('\n');
       const prev = index > 0 ? allSections[index - 1] : null;
       const next = index < allSections.length - 1 ? allSections[index + 1] : null;
+      const isFirst = index === 0;
       
       return `
-        <div id="section-${section.id}" class="section-content" style="display: none;">
+        <div id="section-${section.id}" class="section-content${isFirst ? ' active' : ''}" style="${isFirst ? '' : 'display: none;'}">
           <h1 class="mb-6 text-4xl font-bold">${section.title}</h1>
           <div class="prose prose-lg max-w-none">
             ${contentHTML}
@@ -566,16 +567,17 @@ const DocumentEditor = () => {
       `;
     };
 
-    const renderSidebarNav = (sectionList: Section[], depth = 0): string => {
-      return sectionList.map((section) => {
+    const renderSidebarNav = (sectionList: Section[], depth = 0, isFirst = false): string => {
+      return sectionList.map((section, index) => {
         const hasChildren = section.children && section.children.length > 0;
+        const isFirstSection = isFirst && index === 0 && depth === 0;
         return `
           <div>
-            <button onclick="showSection('${section.id}')" data-section="${section.id}" class="sidebar-btn w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 text-gray-600" style="padding-left: ${depth * 12 + 12}px;">
+            <button onclick="showSection('${section.id}')" data-section="${section.id}" class="sidebar-btn${isFirstSection ? ' active' : ''} w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 text-gray-600" style="padding-left: ${depth * 12 + 12}px;">
               <span class="flex-1 text-left">${section.title}</span>
               ${hasChildren ? '<svg class="h-4 w-4 rotate-90 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>' : ''}
             </button>
-            ${hasChildren ? `<div>${renderSidebarNav(section.children, depth + 1)}</div>` : ''}
+            ${hasChildren ? `<div>${renderSidebarNav(section.children, depth + 1, false)}</div>` : ''}
           </div>
         `;
       }).join('');
@@ -627,7 +629,7 @@ const DocumentEditor = () => {
       <div class="p-4">
         <h2 class="mb-4 text-lg font-bold">${title}</h2>
         <nav class="space-y-1" id="sidebarNav">
-          ${renderSidebarNav(sections)}
+          ${renderSidebarNav(sections, 0, true)}
         </nav>
       </div>
     </aside>
