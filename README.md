@@ -64,6 +64,44 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/e9d8c41a-9324-4037-b04f-6143d0ee0955) and click on Share -> Publish.
 
+## Deploying to a Subpath
+
+This project supports deployment under a subpath (e.g., `/standard-app/`) without manual file edits.
+
+### Build with Base Path
+
+You can set the base path in two ways:
+
+**Option 1: Environment Variable**
+```sh
+VITE_APP_BASE=/standard-app/ npm run build
+```
+
+**Option 2: CLI Flag**
+```sh
+npm run build -- --base=/standard-app/
+```
+
+Both methods will produce a `dist` folder that works correctly when deployed under `/standard-app/` in Nginx or any web server.
+
+### Nginx Configuration Example
+
+```nginx
+location /standard-app/ {
+    alias /path/to/dist/;
+    try_files $uri $uri/ /standard-app/index.html;
+}
+```
+
+### Development with Base Path
+
+For local development with a base path:
+```sh
+VITE_APP_BASE=/standard-app/ npm run dev
+```
+
+The base path defaults to `/` if not specified, so the app works normally at the root path.
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!

@@ -493,7 +493,10 @@ const DocumentEditor = () => {
 
   const openPreview = async () => {
     await saveDocument();
-    window.open(`/preview/${id}`, "_blank");
+    // Use BASE_URL from Vite to construct the correct path with base prefix
+    const baseUrl = import.meta.env.BASE_URL;
+    const previewPath = `${baseUrl}preview/${id}`.replace(/\/+/g, '/'); // Normalize slashes
+    window.open(previewPath, "_blank");
   };
 
   const exportDocument = async () => {
@@ -526,29 +529,29 @@ const DocumentEditor = () => {
 
     const renderBlockHTML = (block: Block): string => {
       if (block.type === "h1") {
-        return `<h1 class="text-3xl font-bold mb-4">${escapeHtml(block.content)}</h1>`;
+        return `<h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">${escapeHtml(block.content)}</h1>`;
       }
       if (block.type === "h2") {
-        return `<h2 class="text-2xl font-bold mb-3">${escapeHtml(block.content)}</h2>`;
+        return `<h2 class="text-xl sm:text-2xl md:text-3xl font-bold mb-2 md:mb-3">${escapeHtml(block.content)}</h2>`;
       }
       if (block.type === "h3") {
-        return `<h3 class="text-xl font-bold mb-2">${escapeHtml(block.content)}</h3>`;
+        return `<h3 class="text-lg sm:text-xl md:text-2xl font-bold mb-2">${escapeHtml(block.content)}</h3>`;
       }
       if (block.type === "image" && block.attachmentData) {
-        return `<div class="my-4"><img src="${block.attachmentData}" alt="${escapeHtml(block.content)}" class="max-w-full rounded-lg border" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);"/><p class="mt-2 text-sm text-gray-500">${escapeHtml(block.content)}</p></div>`;
+        return `<div class="my-4"><img src="${block.attachmentData}" alt="${escapeHtml(block.content)}" class="w-full max-w-full h-auto rounded-lg border" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);"/><p class="mt-2 text-xs sm:text-sm text-gray-500">${escapeHtml(block.content)}</p></div>`;
       }
       if (block.type === "pdf" && block.attachmentData) {
-        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><div class="flex-1"><p class="font-medium">${escapeHtml(block.content)}</p><p class="text-sm text-gray-500">PDF Document</p></div><a href="${block.attachmentData}" download="${escapeHtml(block.content)}" class="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-100">Download</a></div></div>`;
+        return `<div class="my-4 rounded-lg border p-3 md:p-4 bg-gray-50"><div class="flex flex-col sm:flex-row items-start sm:items-center gap-3"><svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><div class="flex-1 min-w-0"><p class="font-medium text-sm sm:text-base break-words">${escapeHtml(block.content)}</p><p class="text-xs sm:text-sm text-gray-500">PDF Document</p></div><a href="${block.attachmentData}" download="${escapeHtml(block.content)}" class="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-100 w-full sm:w-auto text-center flex-shrink-0">Download</a></div></div>`;
       }
       if (block.type === "video" && block.attachmentData) {
-        return `<div class="my-4"><video controls class="max-w-full rounded-lg border" src="${block.attachmentData}" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);">Your browser does not support the video tag.</video><p class="mt-2 text-sm text-gray-500">${escapeHtml(block.content)}</p></div>`;
+        return `<div class="my-4"><video controls class="w-full max-w-full h-auto rounded-lg border" src="${block.attachmentData}" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);">Your browser does not support the video tag.</video><p class="mt-2 text-xs sm:text-sm text-gray-500">${escapeHtml(block.content)}</p></div>`;
       }
       if (block.type === "link") {
-        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg><a href="${escapeHtml(block.content)}" target="_blank" rel="noopener noreferrer" class="flex-1 text-blue-700 hover:underline">${escapeHtml(block.content)}</a></div></div>`;
+        return `<div class="my-4 rounded-lg border p-3 md:p-4 bg-gray-50"><div class="flex items-start sm:items-center gap-3"><svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-700 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg><a href="${escapeHtml(block.content)}" target="_blank" rel="noopener noreferrer" class="flex-1 text-blue-700 hover:underline break-all text-sm sm:text-base">${escapeHtml(block.content)}</a></div></div>`;
       }
       // Handle content with potential image/PDF placeholders
       const processedContent = block.content.replace(/\[(?:IMAGE|PDF):[^\]]+\]/g, '');
-      return `<p class="text-base leading-7 mb-4 whitespace-pre-wrap">${escapeHtml(processedContent).replace(/\n/g, '<br>')}</p>`;
+      return `<p class="text-sm sm:text-base md:text-lg leading-6 md:leading-7 mb-3 md:mb-4 whitespace-pre-wrap break-words">${escapeHtml(processedContent).replace(/\n/g, '<br>')}</p>`;
     };
 
     const renderSectionHTML = (section: Section, index: number): string => {
@@ -558,25 +561,25 @@ const DocumentEditor = () => {
       
       return `
         <div id="section-${section.id}" class="section-content" style="display: ${index === 0 ? 'block' : 'none'};">
-          <h1 class="mb-6 text-4xl font-bold">${escapeHtml(section.title)}</h1>
-          <div class="prose prose-lg max-w-none">
+          <h1 class="mb-4 md:mb-6 text-2xl sm:text-3xl md:text-4xl font-bold">${escapeHtml(section.title)}</h1>
+          <div class="prose prose-sm sm:prose-base md:prose-lg max-w-none">
             ${contentHTML}
           </div>
-          <div class="mt-12 pt-8 border-t flex gap-4">
+          <div class="mt-8 md:mt-12 pt-6 md:pt-8 border-t flex flex-col sm:flex-row gap-3 sm:gap-4">
             ${prev ? `
-              <button onclick="showSection('${prev.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50 text-left">
+              <button onclick="showSection('${prev.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-3 md:py-4 px-4 border rounded-lg hover:bg-gray-50 text-left w-full sm:w-auto">
                 <svg class="h-5 w-5 rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                <div class="text-left flex-1 min-w-0"><div class="text-xs text-gray-500">Previous</div><div class="font-medium truncate">${escapeHtml(prev.title)}</div></div>
+                <div class="text-left flex-1 min-w-0"><div class="text-xs text-gray-500">Previous</div><div class="font-medium truncate text-sm md:text-base">${escapeHtml(prev.title)}</div></div>
               </button>
-            ` : '<div class="flex-1"></div>'}
+            ` : '<div class="hidden sm:block flex-1"></div>'}
             ${next ? `
-              <button onclick="showSection('${next.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50 text-right">
-                <div class="text-right flex-1 min-w-0"><div class="text-xs text-gray-500">Next</div><div class="font-medium truncate">${escapeHtml(next.title)}</div></div>
+              <button onclick="showSection('${next.id}'); return false;" class="nav-btn flex gap-2 flex-1 py-3 md:py-4 px-4 border rounded-lg hover:bg-gray-50 text-right w-full sm:w-auto">
+                <div class="text-right flex-1 min-w-0"><div class="text-xs text-gray-500">Next</div><div class="font-medium truncate text-sm md:text-base">${escapeHtml(next.title)}</div></div>
                 <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
               </button>
-            ` : '<div class="flex-1"></div>'}
+            ` : '<div class="hidden sm:block flex-1"></div>'}
           </div>
-          <div class="mt-8 pt-4 text-sm text-gray-500 text-center border-t">
+          <div class="mt-6 md:mt-8 pt-4 text-xs sm:text-sm text-gray-500 text-center border-t">
             Last updated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
@@ -619,7 +622,7 @@ const DocumentEditor = () => {
         const isExpanded = sectionsToExpand.has(section.id);
         return `
           <div>
-            <button onclick="showSection('${section.id}'); return false;" data-section="${section.id}" class="sidebar-btn${isFirst ? ' active' : ''} w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 ${isFirst ? 'bg-gray-100 font-semibold text-blue-800' : 'text-gray-600'}" style="padding-left: ${depth * 12 + 12}px;">
+            <button onclick="showSection('${section.id}'); closeMobileMenu(); return false;" data-section="${section.id}" class="sidebar-btn${isFirst ? ' active' : ''} w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 ${isFirst ? 'bg-gray-100 font-semibold text-blue-800' : 'text-gray-600'}" style="padding-left: ${depth * 12 + 12}px;">
               <span class="flex-1 text-left break-words">${escapeHtml(section.title)}</span>
               ${hasChildren ? `<button onclick="event.stopPropagation(); toggleSubSection('${section.id}');" class="p-1 hover:bg-gray-200 rounded flex-shrink-0"><svg id="chevron-${section.id}" class="h-4 w-4 transition-transform${isExpanded ? ' rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>` : ''}
             </button>
@@ -643,16 +646,33 @@ const DocumentEditor = () => {
     .sidebar-btn.active { background: #f3f4f6 !important; font-weight: 600; color: #1e3a8a !important; }
     .section-content { display: none; }
     .section-content.active { display: block; }
+    #mobileMenu { display: none; opacity: 0; transition: opacity 0.3s ease; }
+    #mobileMenu.open { display: block; opacity: 1; }
+    #mobileMenuSidebar { transition: transform 0.3s ease; }
+    #mobileMenuSidebar.open { display: block !important; transform: translateX(0) !important; }
+    @media (max-width: 768px) {
+      #sidebar { display: none !important; }
+    }
+    @media (min-width: 769px) {
+      #mobileMenu { display: none !important; }
+      #mobileMenuSidebar { display: none !important; }
+    }
   </style>
 </head>
 <body class="bg-white text-gray-800">
   <!-- Header -->
   <header class="sticky top-0 z-50 w-full border-b bg-white/95" style="backdrop-filter: blur(8px);">
     <div class="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
-      <div class="flex items-center gap-2">
-        <img src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" alt="Leapmile Robotics" class="h-7"/>
+      <div class="flex items-center gap-3">
+        <!-- Mobile Menu Button -->
+        <button id="mobileMenuBtn" onclick="toggleMobileMenu(); event.stopPropagation();" class="md:hidden p-2 hover:bg-gray-100 rounded-md">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <img src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" alt="Leapmile Robotics" class="h-7"/>
+        </div>
       </div>
-      <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2 md:gap-6">
         <nav class="hidden md:flex items-center gap-6 text-sm">
           <button onclick="location.reload()" class="transition-colors hover:text-blue-700">Home</button>
           <a href="https://www.leapmile.com" class="transition-colors hover:text-blue-700">Website</a>
@@ -660,19 +680,39 @@ const DocumentEditor = () => {
         </nav>
         <div class="relative">
           <svg class="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          <input type="search" id="searchInput" placeholder="Search in document..." class="w-[200px] lg:w-[300px] pl-8 pr-3 py-2 border rounded-md text-sm" />
+          <input type="search" id="searchInput" placeholder="Search..." class="w-[140px] sm:w-[180px] md:w-[200px] lg:w-[300px] pl-8 pr-8 py-2 border rounded-md text-sm" />
           <button onclick="clearSearch()" id="clearBtn" class="hidden absolute right-1 top-1 h-6 w-6 hover:bg-gray-100 rounded-md">
             <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
       </div>
     </div>
-    <div id="searchResults" class="hidden absolute right-4 top-16 z-50 w-[400px] bg-white border rounded-lg shadow-lg max-h-[400px] overflow-y-auto p-2"></div>
+    
+    <!-- Search Results Dropdown -->
+    <div id="searchResults" class="hidden absolute left-2 right-2 md:right-4 md:left-auto md:w-[400px] top-16 z-50 bg-white border rounded-lg shadow-lg max-h-[400px] overflow-y-auto p-2"></div>
   </header>
+  
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileMenu" class="fixed inset-0 z-40 bg-black bg-opacity-50" style="display: none;"></div>
+  <div id="mobileMenuSidebar" class="fixed left-0 top-16 bottom-0 z-50 w-80 bg-gray-50 border-r shadow-lg overflow-hidden" style="display: none; transform: translateX(-100%);" onclick="event.stopPropagation();">
+    <div class="p-4 border-b bg-white sticky top-0 z-10">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold">${escapeHtml(title)}</h2>
+        <button onclick="closeMobileMenu(); event.stopPropagation();" class="p-2 hover:bg-gray-100 rounded-md">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+    </div>
+    <div class="overflow-y-auto h-[calc(100vh-5rem)] p-4" onclick="event.stopPropagation();">
+      <nav class="space-y-1" id="mobileSidebarNav">
+        ${renderSidebarNav(sections, 0)}
+      </nav>
+    </div>
+  </div>
 
   <div class="flex overflow-hidden">
-    <!-- Sidebar -->
-    <aside class="w-64 border-r bg-gray-50 h-[calc(100vh-4rem)] overflow-y-auto">
+    <!-- Sidebar - Hidden on mobile -->
+    <aside id="sidebar" class="hidden md:block w-64 border-r bg-gray-50 h-[calc(100vh-4rem)] overflow-y-auto">
       <div class="p-4">
         <h2 class="mb-4 text-lg font-bold">${escapeHtml(title)}</h2>
         <nav class="space-y-1" id="sidebarNav">
@@ -683,7 +723,7 @@ const DocumentEditor = () => {
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
-      <div class="container max-w-7xl mx-auto px-8 py-12" id="mainContent">
+      <div class="container max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-12" id="mainContent">
         ${allSections.map((section, index) => renderSectionHTML(section, index)).join('\n')}
       </div>
     </main>
@@ -727,6 +767,40 @@ const DocumentEditor = () => {
       return search(sectionTree, sectionId) || [];
     }
 
+    function toggleMobileMenu() {
+      const mobileMenu = document.getElementById('mobileMenu');
+      const mobileMenuSidebar = document.getElementById('mobileMenuSidebar');
+      if (mobileMenu && mobileMenuSidebar) {
+        if (mobileMenu.classList.contains('open')) {
+          closeMobileMenu();
+        } else {
+          mobileMenu.style.display = 'block';
+          mobileMenuSidebar.style.display = 'block';
+          // Force reflow
+          mobileMenu.offsetHeight;
+          setTimeout(() => {
+            mobileMenu.classList.add('open');
+            mobileMenuSidebar.classList.add('open');
+          }, 10);
+        }
+      }
+    }
+
+    function closeMobileMenu() {
+      const mobileMenu = document.getElementById('mobileMenu');
+      const mobileMenuSidebar = document.getElementById('mobileMenuSidebar');
+      if (mobileMenu && mobileMenuSidebar) {
+        mobileMenu.classList.remove('open');
+        mobileMenuSidebar.classList.remove('open');
+        setTimeout(() => {
+          if (!mobileMenu.classList.contains('open')) {
+            mobileMenu.style.display = 'none';
+            mobileMenuSidebar.style.display = 'none';
+          }
+        }, 300);
+      }
+    }
+
     function showSection(sectionId) {
       // Expand all parent sections
       const parentIds = findParentIds(sectionId);
@@ -753,7 +827,7 @@ const DocumentEditor = () => {
         sectionEl.classList.add('active');
       }
       
-      // Update active button in sidebar
+      // Update active button in sidebar (both desktop and mobile)
       document.querySelectorAll('.sidebar-btn').forEach(el => {
         el.classList.remove('active');
         el.classList.remove('bg-gray-100', 'font-semibold', 'text-blue-800');
@@ -766,10 +840,26 @@ const DocumentEditor = () => {
         btn.classList.remove('text-gray-600');
       }
       
+      // Also update mobile sidebar button
+      const mobileBtn = document.querySelector('#mobileSidebarNav [data-section="' + sectionId + '"]');
+      if (mobileBtn) {
+        mobileBtn.classList.add('active', 'bg-gray-100', 'font-semibold', 'text-blue-800');
+        mobileBtn.classList.remove('text-gray-600');
+      }
+      
       currentSection = sectionId;
       
+      // Close mobile menu on mobile devices (check if mobile menu is visible)
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      if (mobileMenuBtn && window.getComputedStyle(mobileMenuBtn).display !== 'none') {
+        closeMobileMenu();
+      }
+      
       // Scroll to top of main content
-      document.getElementById('mainContent').scrollTop = 0;
+      const mainContent = document.getElementById('mainContent');
+      if (mainContent) {
+        mainContent.scrollTop = 0;
+      }
     }
 
     function toggleSubSection(sectionId) {
@@ -826,7 +916,7 @@ const DocumentEditor = () => {
       
       if (results.length > 0) {
         resultsDiv.innerHTML = results.map(r => 
-          \`<button onclick="showSection('\${r.id}'); clearSearch();" class="w-full text-left p-3 rounded hover:bg-gray-100">
+          \`<button onclick="showSection('\${r.id}'); clearSearch(); closeMobileMenu();" class="w-full text-left p-3 rounded hover:bg-gray-100">
             <div class="font-medium text-sm text-blue-700 mb-1">\${r.title}</div>
             <div class="text-xs text-gray-500 line-clamp-2">\${r.match}</div>
           </button>\`
@@ -837,6 +927,33 @@ const DocumentEditor = () => {
         resultsDiv.classList.remove('hidden');
       }
     });
+
+    // Close mobile menu when clicking on overlay
+    const mobileMenuOverlay = document.getElementById('mobileMenu');
+    if (mobileMenuOverlay) {
+      mobileMenuOverlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeMobileMenu();
+        }
+      });
+    }
+    
+    // Prevent body scroll when mobile menu is open
+    function handleBodyScroll() {
+      const menuEl = document.getElementById('mobileMenu');
+      if (menuEl && menuEl.classList.contains('open')) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+    }
+    
+    // Watch for mobile menu state changes
+    const menuObserver = new MutationObserver(handleBodyScroll);
+    const menuEl = document.getElementById('mobileMenu');
+    if (menuEl) {
+      menuObserver.observe(menuEl, { attributes: true, attributeFilter: ['class'] });
+    }
 
     // Initialize - expand sections and show first section
     initializeExpandedSections();

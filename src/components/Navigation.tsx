@@ -22,8 +22,8 @@ export const Navigation = () => {
         description: "You have been logged out successfully.",
       });
       
-      // Force navigation to login
-      window.location.href = "/login";
+      // Force navigation to login using React Router
+      navigate("/login", { replace: true });
     } catch (error: any) {
       console.error("Logout error:", error);
       toast({

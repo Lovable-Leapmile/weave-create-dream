@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, FileText, ChevronRight, X, Home, Info, Users, Settings, BookOpen, Lightbulb, Target, Zap, Shield, Award, Briefcase, Globe, Mail, Phone, MessageSquare, Calendar, Database, Code, Layout, PieChart, TrendingUp, Heart, Star, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, FileText, ChevronRight, X, Home, Info, Users, Settings, BookOpen, Lightbulb, Target, Zap, Shield, Award, Briefcase, Globe, Mail, Phone, MessageSquare, Calendar, Database, Code, Layout, PieChart, TrendingUp, Heart, Star, CheckCircle, AlertCircle, Menu } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,6 +43,7 @@ const DocumentPreview = () => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{sectionId: string; sectionTitle: string; matchText: string}>>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -132,9 +134,9 @@ const DocumentPreview = () => {
               <img
                 src={attachment.data}
                 alt={fileName}
-                className="max-w-full rounded-lg border shadow-card"
+                className="w-full max-w-full h-auto rounded-lg border shadow-card"
               />
-              <p className="mt-2 text-sm text-muted-foreground">{fileName}</p>
+              <p className="mt-2 text-xs sm:text-sm text-muted-foreground">{fileName}</p>
             </div>
           );
         }
@@ -145,16 +147,17 @@ const DocumentPreview = () => {
         const attachment = attachments.find((a) => a.id === attachmentId);
         if (attachment) {
           return (
-            <div key={index} className="my-4 rounded-lg border bg-muted p-4">
-              <div className="flex items-center gap-3">
-                <FileText className="h-6 w-6 text-primary" />
-                <div className="flex-1">
-                  <p className="font-medium">{fileName}</p>
-                  <p className="text-sm text-muted-foreground">PDF Document</p>
+            <div key={index} className="my-4 rounded-lg border bg-muted p-3 md:p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm sm:text-base break-words">{fileName}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">PDF Document</p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto flex-shrink-0"
                   onClick={() => {
                     const link = document.createElement("a");
                     link.href = attachment.data;
@@ -178,21 +181,21 @@ const DocumentPreview = () => {
     return blocks.map((block) => {
       if (block.type === "h1") {
         return (
-          <h1 key={block.id} className="text-3xl font-bold mb-4">
+          <h1 key={block.id} className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
             {renderBlockContent(block.content)}
           </h1>
         );
       }
       if (block.type === "h2") {
         return (
-          <h2 key={block.id} className="text-2xl font-bold mb-3">
+          <h2 key={block.id} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 md:mb-3">
             {renderBlockContent(block.content)}
           </h2>
         );
       }
       if (block.type === "h3") {
         return (
-          <h3 key={block.id} className="text-xl font-bold mb-2">
+          <h3 key={block.id} className="text-lg sm:text-xl md:text-2xl font-bold mb-2">
             {renderBlockContent(block.content)}
           </h3>
         );
@@ -203,24 +206,25 @@ const DocumentPreview = () => {
             <img
               src={block.attachmentData}
               alt={block.content}
-              className="max-w-full rounded-lg border shadow-card"
+              className="w-full max-w-full h-auto rounded-lg border shadow-card"
             />
-            <p className="mt-2 text-sm text-muted-foreground">{block.content}</p>
+            <p className="mt-2 text-xs sm:text-sm text-muted-foreground">{block.content}</p>
           </div>
         );
       }
       if (block.type === "pdf" && block.attachmentData) {
         return (
-          <div key={block.id} className="my-4 rounded-lg border bg-muted p-4">
-            <div className="flex items-center gap-3">
-              <FileText className="h-6 w-6 text-primary" />
-              <div className="flex-1">
-                <p className="font-medium">{block.content}</p>
-                <p className="text-sm text-muted-foreground">PDF Document</p>
+          <div key={block.id} className="my-4 rounded-lg border bg-muted p-3 md:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm sm:text-base break-words">{block.content}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">PDF Document</p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto flex-shrink-0"
                 onClick={() => {
                   const link = document.createElement("a");
                   link.href = block.attachmentData!;
@@ -239,27 +243,27 @@ const DocumentPreview = () => {
           <div key={block.id} className="my-4">
             <video
               controls
-              className="max-w-full rounded-lg border shadow-card"
+              className="w-full max-w-full h-auto rounded-lg border shadow-card"
               src={block.attachmentData}
             >
               Your browser does not support the video tag.
             </video>
-            <p className="mt-2 text-sm text-muted-foreground">{block.content}</p>
+            <p className="mt-2 text-xs sm:text-sm text-muted-foreground">{block.content}</p>
           </div>
         );
       }
       if (block.type === "link") {
         return (
-          <div key={block.id} className="my-4 rounded-lg border bg-muted p-4">
-            <div className="flex items-center gap-3">
-              <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div key={block.id} className="my-4 rounded-lg border bg-muted p-3 md:p-4">
+            <div className="flex items-start sm:items-center gap-3">
+              <svg className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
               <a
                 href={block.content}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-primary hover:underline"
+                className="flex-1 text-primary hover:underline break-all text-sm sm:text-base"
               >
                 {block.content}
               </a>
@@ -268,7 +272,7 @@ const DocumentPreview = () => {
         );
       }
       return (
-        <p key={block.id} className="text-base leading-7 mb-4 whitespace-pre-wrap">
+        <p key={block.id} className="text-sm sm:text-base md:text-lg leading-6 md:leading-7 mb-3 md:mb-4 whitespace-pre-wrap break-words">
           {renderBlockContent(block.content)}
         </p>
       );
@@ -345,7 +349,10 @@ const DocumentPreview = () => {
       return (
         <div key={section.id}>
           <button
-            onClick={() => setActiveSection(section.id)}
+            onClick={() => {
+              setActiveSection(section.id);
+              setMobileMenuOpen(false);
+            }}
             className={`w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted ${
               activeSection === section.id
                 ? "bg-muted font-semibold text-primary"
@@ -392,15 +399,38 @@ const DocumentPreview = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
         <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2">
-            <img 
-              src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" 
-              alt="Leapmile Robotics" 
-              className="h-7"
-            />
-          </Link>
+          <div className="flex items-center gap-3">
+            {/* Mobile Menu Button */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0">
+                <div className="p-4 border-b">
+                  <h2 className="text-lg font-bold">{title}</h2>
+                </div>
+                <ScrollArea className="h-[calc(100vh-5rem)]">
+                  <div className="p-4">
+                    <nav className="space-y-1">
+                      {renderSectionNav(sections)}
+                    </nav>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+            
+            <Link to="/" className="flex items-center gap-2">
+              <img 
+                src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" 
+                alt="Leapmile Robotics" 
+                className="h-7"
+              />
+            </Link>
+          </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 md:gap-6">
             <nav className="hidden md:flex items-center gap-6 text-sm">
               <button onClick={() => window.location.reload()} className="transition-colors hover:text-primary">
                 Home
@@ -417,8 +447,8 @@ const DocumentPreview = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search in document..."
-                className="w-[200px] pl-8 lg:w-[300px]"
+                placeholder="Search..."
+                className="w-[140px] sm:w-[180px] md:w-[200px] lg:w-[300px] pl-8 pr-8 text-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -438,7 +468,7 @@ const DocumentPreview = () => {
         
         {/* Search Results Dropdown */}
         {searchResults.length > 0 && (
-          <div className="absolute right-4 top-16 z-50 w-[400px]">
+          <div className="absolute left-2 right-2 md:right-4 md:left-auto md:w-[400px] top-16 z-50">
             <Card className="max-h-[400px] overflow-y-auto p-2">
               {searchResults.map((result, idx) => (
                 <button
@@ -447,6 +477,7 @@ const DocumentPreview = () => {
                   onClick={() => {
                     setActiveSection(result.sectionId);
                     setSearchQuery("");
+                    setMobileMenuOpen(false);
                   }}
                 >
                   <div className="font-medium text-sm text-primary mb-1">{result.sectionTitle}</div>
@@ -459,8 +490,8 @@ const DocumentPreview = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar - Navigation - Fixed */}
-        <aside className="w-64 border-r bg-muted/30 flex flex-col h-[calc(100vh-4rem)]">
+        {/* Left Sidebar - Navigation - Hidden on mobile */}
+        <aside className="hidden md:flex w-64 border-r bg-muted/30 flex-col h-[calc(100vh-4rem)]">
           <ScrollArea className="flex-1">
             <div className="p-4">
               <h2 className="mb-4 text-lg font-bold">{title}</h2>
@@ -473,51 +504,51 @@ const DocumentPreview = () => {
 
         {/* Main Content Area - Scrollable */}
         <main className="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
-          <div className="container max-w-7xl mx-auto px-8 py-12">
+          <div className="container max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-12">
             {currentSection && (
               <div>
-                <h1 className="mb-6 text-4xl font-bold">{currentSection.title}</h1>
-                <div className="prose prose-lg max-w-none dark:prose-invert">
+                <h1 className="mb-4 md:mb-6 text-2xl sm:text-3xl md:text-4xl font-bold">{currentSection.title}</h1>
+                <div className="prose prose-sm sm:prose-base md:prose-lg max-w-none dark:prose-invert">
                   {renderContent(currentSection.content)}
                 </div>
 
                 {/* Next/Previous Navigation */}
-                <div className="mt-12 pt-8 border-t flex gap-4">
+                <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t flex flex-col sm:flex-row gap-3 sm:gap-4">
                   {previousSection ? (
                     <Button
                       variant="outline"
                       onClick={() => setActiveSection(previousSection.id)}
-                      className="gap-2 flex-1 h-auto py-4"
+                      className="gap-2 flex-1 h-auto py-3 md:py-4 w-full sm:w-auto"
                     >
                       <ChevronRight className="h-5 w-5 rotate-180 flex-shrink-0" />
                       <div className="text-left flex-1 min-w-0">
                         <div className="text-xs text-muted-foreground">Previous</div>
-                        <div className="font-medium truncate">{previousSection.title}</div>
+                        <div className="font-medium truncate text-sm md:text-base">{previousSection.title}</div>
                       </div>
                     </Button>
                   ) : (
-                    <div className="flex-1" />
+                    <div className="hidden sm:block flex-1" />
                   )}
 
                   {nextSection ? (
                     <Button
                       variant="outline"
                       onClick={() => setActiveSection(nextSection.id)}
-                      className="gap-2 flex-1 h-auto py-4"
+                      className="gap-2 flex-1 h-auto py-3 md:py-4 w-full sm:w-auto"
                     >
                       <div className="text-right flex-1 min-w-0">
                         <div className="text-xs text-muted-foreground">Next</div>
-                        <div className="font-medium truncate">{nextSection.title}</div>
+                        <div className="font-medium truncate text-sm md:text-base">{nextSection.title}</div>
                       </div>
                       <ChevronRight className="h-5 w-5 flex-shrink-0" />
                     </Button>
                   ) : (
-                    <div className="flex-1" />
+                    <div className="hidden sm:block flex-1" />
                   )}
                 </div>
 
                 {/* Last Updated Date */}
-                <div className="mt-8 pt-4 text-sm text-muted-foreground text-center border-t">
+                <div className="mt-6 md:mt-8 pt-4 text-xs sm:text-sm text-muted-foreground text-center border-t">
                   Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                 </div>
               </div>

@@ -38,7 +38,9 @@ export const useAuth = () => {
   };
 
   const signUp = async (mobileNumber: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    // Include base path in redirect URL for Supabase email redirects
+    const baseUrl = import.meta.env.BASE_URL;
+    const redirectUrl = `${window.location.origin}${baseUrl}`;
     // Use mobile number as email (format: mobilenumber@app.local)
     const email = `${mobileNumber}@app.local`;
     
