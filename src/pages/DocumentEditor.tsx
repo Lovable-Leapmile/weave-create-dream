@@ -514,44 +514,72 @@ const DocumentEditor = () => {
 
     const renderBlockHTML = (block: Block): string => {
       if (block.type === "h1") {
-        return `<h1 style="font-size: 1.875rem; font-weight: bold; margin-bottom: 1rem;">${block.content}</h1>`;
+        return `<h1 class="text-3xl font-bold mb-4">${block.content}</h1>`;
       }
       if (block.type === "h2") {
-        return `<h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.75rem;">${block.content}</h2>`;
+        return `<h2 class="text-2xl font-bold mb-3">${block.content}</h2>`;
       }
       if (block.type === "h3") {
-        return `<h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">${block.content}</h3>`;
+        return `<h3 class="text-xl font-bold mb-2">${block.content}</h3>`;
       }
       if (block.type === "image" && block.attachmentData) {
-        return `<div style="margin: 1rem 0;"><img src="${block.attachmentData}" alt="${block.content}" style="max-width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;"/><p style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">${block.content}</p></div>`;
+        return `<div class="my-4"><img src="${block.attachmentData}" alt="${block.content}" class="max-w-full rounded-lg border" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);"/><p class="mt-2 text-sm text-gray-500">${block.content}</p></div>`;
       }
       if (block.type === "pdf" && block.attachmentData) {
-        return `<div style="margin: 1rem 0; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background: #f9fafb;"><strong>${block.content}</strong> (PDF Document)</div>`;
+        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><div class="flex-1"><p class="font-medium">${block.content}</p><p class="text-sm text-gray-500">PDF Document</p></div><a href="${block.attachmentData}" download="${block.content}" class="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-100">Download</a></div></div>`;
       }
       if (block.type === "video" && block.attachmentData) {
-        return `<div style="margin: 1rem 0;"><video controls style="max-width: 100%; border-radius: 0.5rem; border: 1px solid #e5e7eb;" src="${block.attachmentData}"></video><p style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">${block.content}</p></div>`;
+        return `<div class="my-4"><video controls class="max-w-full rounded-lg border" src="${block.attachmentData}" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);">Your browser does not support the video tag.</video><p class="mt-2 text-sm text-gray-500">${block.content}</p></div>`;
       }
       if (block.type === "link") {
-        return `<div style="margin: 1rem 0; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 0.5rem; background: #f9fafb;"><a href="${block.content}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${block.content}</a></div>`;
+        return `<div class="my-4 rounded-lg border p-4 bg-gray-50"><div class="flex items-center gap-3"><svg class="h-6 w-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg><a href="${block.content}" target="_blank" rel="noopener noreferrer" class="flex-1 text-blue-700 hover:underline">${block.content}</a></div></div>`;
       }
-      return `<p style="line-height: 1.75; margin-bottom: 1rem; white-space: pre-wrap;">${block.content}</p>`;
+      return `<p class="text-base leading-7 mb-4 whitespace-pre-wrap">${block.content}</p>`;
     };
 
-    const renderSectionHTML = (section: Section): string => {
+    const renderSectionHTML = (section: Section, index: number): string => {
       const contentHTML = section.content.map(renderBlockHTML).join('\n');
+      const prev = index > 0 ? allSections[index - 1] : null;
+      const next = index < allSections.length - 1 ? allSections[index + 1] : null;
+      
       return `
-        <section id="section-${section.id}" style="margin-bottom: 3rem;">
-          <h2 style="font-size: 2rem; font-weight: bold; margin-bottom: 1.5rem; color: #1e40af;">${section.title}</h2>
-          ${contentHTML}
-        </section>
+        <div id="section-${section.id}" class="section-content" style="display: none;">
+          <h1 class="mb-6 text-4xl font-bold">${section.title}</h1>
+          <div class="prose prose-lg max-w-none">
+            ${contentHTML}
+          </div>
+          <div class="mt-12 pt-8 border-t flex gap-4">
+            ${prev ? `
+              <button onclick="showSection('${prev.id}')" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50">
+                <svg class="h-5 w-5 rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                <div class="text-left flex-1"><div class="text-xs text-gray-500">Previous</div><div class="font-medium">${prev.title}</div></div>
+              </button>
+            ` : '<div class="flex-1"></div>'}
+            ${next ? `
+              <button onclick="showSection('${next.id}')" class="nav-btn flex gap-2 flex-1 py-4 px-4 border rounded-lg hover:bg-gray-50">
+                <div class="text-right flex-1"><div class="text-xs text-gray-500">Next</div><div class="font-medium">${next.title}</div></div>
+                <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+              </button>
+            ` : '<div class="flex-1"></div>'}
+          </div>
+        </div>
       `;
     };
 
-    const sidebarHTML = allSections.map((section) => `
-      <a href="#section-${section.id}" style="display: block; padding: 0.5rem 0.75rem; color: #4b5563; text-decoration: none; border-radius: 0.375rem; transition: background-color 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
-        ${section.title}
-      </a>
-    `).join('');
+    const renderSidebarNav = (sectionList: Section[], depth = 0): string => {
+      return sectionList.map((section) => {
+        const hasChildren = section.children && section.children.length > 0;
+        return `
+          <div>
+            <button onclick="showSection('${section.id}')" data-section="${section.id}" class="sidebar-btn w-full flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 text-gray-600" style="padding-left: ${depth * 12 + 12}px;">
+              <span class="flex-1 text-left">${section.title}</span>
+              ${hasChildren ? '<svg class="h-4 w-4 rotate-90 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>' : ''}
+            </button>
+            ${hasChildren ? `<div>${renderSidebarNav(section.children, depth + 1)}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    };
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
@@ -559,284 +587,129 @@ const DocumentEditor = () => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #1f2937;
-      background: #ffffff;
-    }
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-      border-bottom: 1px solid #e5e7eb;
-      padding: 1rem 2rem;
-    }
-    .header-content {
-      max-width: 1400px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .logo {
-      height: 1.75rem;
-    }
-    .nav-links {
-      display: flex;
-      gap: 1.5rem;
-      font-size: 0.875rem;
-    }
-    .nav-links a {
-      color: #4b5563;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover {
-      color: #1e40af;
-    }
-    .search-container {
-      position: relative;
-    }
-    .search-input {
-      padding: 0.5rem 1rem 0.5rem 2.5rem;
-      border: 1px solid #e5e7eb;
-      border-radius: 0.375rem;
-      width: 300px;
-      font-size: 0.875rem;
-    }
-    .search-icon {
-      position: absolute;
-      left: 0.75rem;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 1rem;
-      height: 1rem;
-      color: #9ca3af;
-    }
-    .container {
-      display: flex;
-      max-width: 1400px;
-      margin: 0 auto;
-      min-height: calc(100vh - 5rem);
-    }
-    .sidebar {
-      width: 256px;
-      border-right: 1px solid #e5e7eb;
-      background: #f9fafb;
-      padding: 1.5rem;
-      position: sticky;
-      top: 5rem;
-      height: calc(100vh - 5rem);
-      overflow-y: auto;
-    }
-    .sidebar h3 {
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: #1f2937;
-    }
-    .sidebar a {
-      display: block;
-      padding: 0.5rem 0.75rem;
-      color: #4b5563;
-      text-decoration: none;
-      border-radius: 0.375rem;
-      transition: background-color 0.2s;
-    }
-    .sidebar a:hover, .sidebar a.active {
-      background: #e5e7eb;
-      color: #1e40af;
-    }
-    .main-content {
-      flex: 1;
-      padding: 2rem 4rem;
-      max-width: 900px;
-    }
-    h1 {
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 2rem;
-      background: linear-gradient(135deg, #1e40af, #3b82f6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    h2 {
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 1.5rem;
-      color: #1e40af;
-    }
-    section {
-      margin-bottom: 3rem;
-    }
-    .navigation-buttons {
-      display: flex;
-      gap: 1rem;
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid #e5e7eb;
-    }
-    .nav-button {
-      flex: 1;
-      padding: 1rem 1.5rem;
-      border: 1px solid #e5e7eb;
-      border-radius: 0.5rem;
-      background: white;
-      cursor: pointer;
-      color: #1f2937;
-      font-weight: 500;
-      transition: all 0.2s;
-    }
-    .nav-button:hover {
-      background: #f9fafb;
-      border-color: #2563eb;
-    }
-    .footer {
-      text-align: center;
-      padding: 2rem;
-      font-size: 0.875rem;
-      color: #6b7280;
-      border-top: 1px solid #e5e7eb;
-    }
-    @media (max-width: 768px) {
-      .sidebar {
-        display: none;
-      }
-      .main-content {
-        padding: 1rem 1.5rem;
-      }
-      .search-input {
-        width: 200px;
-      }
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+    .sidebar-btn.active { background: #f3f4f6; font-weight: 600; color: #1e3a8a; }
+    .section-content { display: none; }
+    .section-content.active { display: block; }
   </style>
 </head>
-<body>
-  <header class="header">
-    <div class="header-content">
-      <img src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" alt="Leapmile Robotics" class="logo" />
-      <nav class="nav-links">
-        <a href="javascript:location.reload()">Home</a>
-        <a href="https://www.leapmile.com">Website</a>
-        <a href="https://www.leapmile.com/#contact">Contact Us</a>
-      </nav>
-      <div class="search-container">
-        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
-        <input type="search" class="search-input" placeholder="Search in document..." id="searchInput">
+<body class="bg-white text-gray-800">
+  <!-- Header -->
+  <header class="sticky top-0 z-50 w-full border-b bg-white/95" style="backdrop-filter: blur(8px);">
+    <div class="container max-w-7xl mx-auto flex h-16 items-center justify-between px-4">
+      <div class="flex items-center gap-2">
+        <img src="https://leapmile-website.blr1.digitaloceanspaces.com/leapmile.png" alt="Leapmile Robotics" class="h-7"/>
+      </div>
+      <div class="flex items-center gap-6">
+        <nav class="hidden md:flex items-center gap-6 text-sm">
+          <button onclick="location.reload()" class="transition-colors hover:text-blue-700">Home</button>
+          <a href="https://www.leapmile.com" class="transition-colors hover:text-blue-700">Website</a>
+          <a href="https://www.leapmile.com/#contact" class="transition-colors hover:text-blue-700">Contact Us</a>
+        </nav>
+        <div class="relative">
+          <svg class="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          <input type="search" id="searchInput" placeholder="Search in document..." class="w-[200px] lg:w-[300px] pl-8 pr-3 py-2 border rounded-md text-sm" />
+          <button onclick="clearSearch()" id="clearBtn" class="hidden absolute right-1 top-1 h-6 w-6 hover:bg-gray-100 rounded-md">
+            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
       </div>
     </div>
+    <div id="searchResults" class="hidden absolute right-4 top-16 z-50 w-[400px] bg-white border rounded-lg shadow-lg max-h-[400px] overflow-y-auto p-2"></div>
   </header>
 
-  <div class="container">
-    <aside class="sidebar">
-      <h3>Content Overview</h3>
-      ${sidebarHTML}
+  <div class="flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 border-r bg-gray-50 h-[calc(100vh-4rem)] overflow-y-auto">
+      <div class="p-4">
+        <h2 class="mb-4 text-lg font-bold">${title}</h2>
+        <nav class="space-y-1" id="sidebarNav">
+          ${renderSidebarNav(sections)}
+        </nav>
+      </div>
     </aside>
 
-    <main class="main-content">
-      <h1>${title}</h1>
-      
-      ${allSections.map(renderSectionHTML).join('\n')}
-
-      <div class="navigation-buttons">
-        ${allSections.length > 1 ? `
-          <button class="nav-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-            ← First Section
-          </button>
-          <button class="nav-button" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})">
-            Last Section →
-          </button>
-        ` : ''}
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto h-[calc(100vh-4rem)]">
+      <div class="container max-w-7xl mx-auto px-8 py-12" id="mainContent">
+        ${allSections.map((section, index) => renderSectionHTML(section, index)).join('\n')}
       </div>
     </main>
   </div>
 
-  <footer class="footer">
-    Last updated: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-  </footer>
-
   <script>
-    // Smooth scroll for sidebar links
-    document.querySelectorAll('.sidebar a').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const target = document.querySelector(link.getAttribute('href'));
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      });
-    });
+    let currentSection = '${allSections[0]?.id || '1'}';
+    const sections = ${JSON.stringify(allSections.map(s => ({ id: s.id, title: s.title, content: s.content.map(b => ({ type: b.type, content: b.content })) })))};
 
-    // Search functionality
-    const searchInput = document.getElementById('searchInput');
-    let sections = [];
-    
-    // Collect all sections for search
-    document.querySelectorAll('section').forEach(section => {
-      sections.push({
-        id: section.id,
-        title: section.querySelector('h2')?.textContent || '',
-        content: section.textContent || ''
-      });
-    });
+    function showSection(sectionId) {
+      currentSection = sectionId;
+      document.querySelectorAll('.section-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.sidebar-btn').forEach(el => el.classList.remove('active'));
+      
+      const section = document.getElementById('section-' + sectionId);
+      if (section) {
+        section.classList.add('active');
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      
+      const btn = document.querySelector('[data-section="' + sectionId + '"]');
+      if (btn) btn.classList.add('active');
+    }
 
-    searchInput.addEventListener('input', (e) => {
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('searchResults').classList.add('hidden');
+      document.getElementById('clearBtn').classList.add('hidden');
+    }
+
+    document.getElementById('searchInput').addEventListener('input', (e) => {
       const query = e.target.value.toLowerCase().trim();
+      const resultsDiv = document.getElementById('searchResults');
+      const clearBtn = document.getElementById('clearBtn');
       
       if (!query) {
-        // Reset highlighting
-        document.querySelectorAll('section').forEach(section => {
-          section.style.display = 'block';
-        });
+        resultsDiv.classList.add('hidden');
+        clearBtn.classList.add('hidden');
         return;
       }
-
-      // Search and highlight
-      document.querySelectorAll('section').forEach(section => {
-        const content = section.textContent.toLowerCase();
-        if (content.includes(query)) {
-          section.style.display = 'block';
-        } else {
-          section.style.display = 'none';
+      
+      clearBtn.classList.remove('hidden');
+      const results = [];
+      
+      sections.forEach(section => {
+        if (section.title.toLowerCase().includes(query)) {
+          results.push({ id: section.id, title: section.title, match: section.title });
         }
+        section.content.forEach(block => {
+          if (block.content.toLowerCase().includes(query)) {
+            const idx = block.content.toLowerCase().indexOf(query);
+            const start = Math.max(0, idx - 30);
+            const end = Math.min(block.content.length, idx + query.length + 30);
+            const match = (start > 0 ? '...' : '') + block.content.substring(start, end) + (end < block.content.length ? '...' : '');
+            results.push({ id: section.id, title: section.title, match });
+          }
+        });
       });
+      
+      if (results.length > 0) {
+        resultsDiv.innerHTML = results.map(r => 
+          \`<button onclick="showSection('\${r.id}'); clearSearch();" class="w-full text-left p-3 rounded hover:bg-gray-100">
+            <div class="font-medium text-sm text-blue-700 mb-1">\${r.title}</div>
+            <div class="text-xs text-gray-500 line-clamp-2">\${r.match}</div>
+          </button>\`
+        ).join('');
+        resultsDiv.classList.remove('hidden');
+      } else {
+        resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500">No results found</div>';
+        resultsDiv.classList.remove('hidden');
+      }
     });
 
-    // Update active sidebar link on scroll
-    const observerOptions = {
-      root: null,
-      rootMargin: '-20% 0px -70% 0px',
-      threshold: 0
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          document.querySelectorAll('.sidebar a').forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === '#' + entry.target.id) {
-              link.classList.add('active');
-            }
-          });
-        }
-      });
-    }, observerOptions);
-
-    document.querySelectorAll('section').forEach(section => {
-      observer.observe(section);
-    });
+    // Initialize
+    showSection(currentSection);
   </script>
 </body>
 </html>`;
@@ -851,7 +724,7 @@ const DocumentEditor = () => {
 
     toast({
       title: "Document exported",
-      description: "Your document has been exported as a standalone HTML file.",
+      description: "Your document has been exported as a complete standalone HTML file matching the preview.",
     });
   };
 
