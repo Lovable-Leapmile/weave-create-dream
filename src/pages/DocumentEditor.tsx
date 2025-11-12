@@ -78,11 +78,19 @@ const DocumentEditor = () => {
   const [insertAfterBlockId, setInsertAfterBlockId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteSectionId, setDeleteSectionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const loadedDocIdRef = useRef<string | null>(null);
 
   // Load document from database
   useEffect(() => {
     const loadDocument = async () => {
-      if (!user || !id) return;
+      if (!user || !id || isLoading) return;
+      
+      // Prevent loading the same document multiple times
+      if (loadedDocIdRef.current === id) return;
+
+      setIsLoading(true);
+      loadedDocIdRef.current = id;
 
       if (id === "new") {
         // Create new document
@@ -104,6 +112,7 @@ const DocumentEditor = () => {
             description: "Failed to create document.",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         }
 
@@ -120,6 +129,7 @@ const DocumentEditor = () => {
 
         if (error) {
           console.error("Error loading document:", error);
+          setIsLoading(false);
           return;
         }
 
@@ -129,10 +139,12 @@ const DocumentEditor = () => {
           setSections(content.sections || [{ id: "1", title: "Introduction", content: [] }]);
         }
       }
+      
+      setIsLoading(false);
     };
 
     loadDocument();
-  }, [id, user, navigate]);
+  }, [id, user]);
 
   // Auto-save document to database
   useEffect(() => {
