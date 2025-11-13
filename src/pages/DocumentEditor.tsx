@@ -155,21 +155,12 @@ const DocumentEditor = () => {
     if (!user || !id || id === "new") return;
 
     const autoSave = setTimeout(async () => {
-      const description = sections[0]?.content[0]?.content?.substring(0, 100) || "";
-      
-      const { error } = await supabase
-        .from("documents")
-        .update({
-          title,
-          description,
-          content: { sections } as any,
-        })
-        .eq("id", id);
-
-      if (error) {
-        console.error("Auto-save error:", error);
+      try {
+        await performWithRetry(saveDocumentCore, 3, 400);
+      } catch (error) {
+        console.error("Auto-save error after retries:", error);
       }
-    }, 2000);
+    }, 1200);
 
     return () => clearTimeout(autoSave);
   }, [title, sections, id, user]);
@@ -186,45 +177,23 @@ const DocumentEditor = () => {
 
     if (!id || id === "new") {
       toast({
-        title: "Error",
-        description: "Cannot save a new document. Please wait for it to be created.",
-        variant: "destructive",
+        title: "Please wait",
+        description: "Setting up your new document...",
       });
       return;
     }
 
-    const description = sections[0]?.content[0]?.content?.substring(0, 100) || "";
-    
     try {
-      const { error } = await supabase
-        .from("documents")
-        .update({
-          title,
-          description,
-          content: { sections } as any,
-          last_modified: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .eq("user_id", user.id);
-
-      if (error) {
-        console.error("Save error:", error);
-        toast({
-          title: "Error",
-          description: `Failed to save document: ${error.message}`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Document saved",
-          description: "Your changes have been saved successfully.",
-        });
-      }
-    } catch (err) {
-      console.error("Save exception:", err);
+      await performWithRetry(saveDocumentCore, 3, 400);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred while saving.",
+        title: "Document saved",
+        description: "Your changes have been saved successfully.",
+      });
+    } catch (err: any) {
+      console.error("Save error after retries:", err);
+      toast({
+        title: "Save failed",
+        description: "We couldn't reach the backend. Your edits are still here and we'll retry shortly.",
         variant: "destructive",
       });
     }
@@ -476,6 +445,44 @@ const DocumentEditor = () => {
     });
   };
 
+  // Performance & resilience helpers for saving
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  const performWithRetry = async (fn: () => Promise<void>, retries = 3, baseDelay = 400) => {
+    let attempt = 0;
+    let lastErr: any;
+    while (attempt <= retries) {
+      try {
+        await fn();
+        return;
+      } catch (err) {
+        lastErr = err;
+        // Exponential backoff: 400ms, 800ms, 1600ms, 3200ms
+        await delay(baseDelay * Math.pow(2, attempt));
+        attempt++;
+      }
+    }
+    throw lastErr;
+  };
+
+  // Core update call used by both auto-save and explicit Save
+  const saveDocumentCore = async () => {
+    if (!user || !id || id === "new") return;
+    const description = sections[0]?.content[0]?.content?.substring(0, 100) || "";
+
+    const { error } = await supabase
+      .from("documents")
+      .update({
+        title,
+        description,
+        content: { sections } as any,
+        last_modified: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("user_id", user.id);
+
+    if (error) throw new Error(error.message);
+  };
+
 
   const currentSection = findSection(activeSection);
 
@@ -581,7 +588,8 @@ const DocumentEditor = () => {
   };
 
   const openPreview = async () => {
-    await saveDocument();
+    const savePromise = saveDocument();
+    await Promise.race([savePromise, delay(1500)]);
     // Use BASE_URL from Vite to construct the correct path with base prefix
     const baseUrl = import.meta.env.BASE_URL;
     const previewPath = `${baseUrl}preview/${id}`.replace(/\/+/g, '/'); // Normalize slashes
@@ -589,7 +597,8 @@ const DocumentEditor = () => {
   };
 
   const exportDocument = async () => {
-    await saveDocument();
+    const savePromise = saveDocument();
+    await Promise.race([savePromise, delay(1500)]);
     
     const flattenSections = (sectionList: Section[]): Section[] => {
       const result: Section[] = [];
