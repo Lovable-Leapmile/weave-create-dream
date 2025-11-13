@@ -3,6 +3,7 @@
 export interface User {
   id: string;
   mobileNumber: string;
+  password: string; // Added password field
   createdAt: string;
 }
 
@@ -32,9 +33,16 @@ export const saveUser = (user: User): void => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
-export const findUserByMobile = (mobileNumber: string): User | undefined => {
+export const findUserByMobile = (mobileNumber: string, password?: string): User | undefined => {
   const users = getUsers();
-  return users.find(u => u.mobileNumber === mobileNumber);
+  const user = users.find(u => u.mobileNumber === mobileNumber);
+  
+  // If password is provided, verify it matches
+  if (user && password && user.password !== password) {
+    return undefined;
+  }
+  
+  return user;
 };
 
 export const getCurrentUser = (): User | null => {
@@ -88,3 +96,26 @@ export const deleteDocument = (id: string): void => {
 export const generateId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
+
+// Initialize default user after functions are defined
+const initializeDefaultUser = () => {
+  const users = getUsers();
+  const defaultMobile = '9876543210';
+  
+  // Check if default user already exists
+  const existingUser = users.find(u => u.mobileNumber === defaultMobile);
+  
+  if (!existingUser) {
+    const defaultUser: User = {
+      id: generateId(),
+      mobileNumber: defaultMobile,
+      password: '098765',
+      createdAt: new Date().toISOString(),
+    };
+    users.push(defaultUser);
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+};
+
+// Call initialization on module load
+initializeDefaultUser();

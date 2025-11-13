@@ -21,17 +21,15 @@ export const useAuth = () => {
 
   const signIn = async (mobileNumber: string, password: string) => {
     try {
-      const existingUser = findUserByMobile(mobileNumber);
+      const existingUser = findUserByMobile(mobileNumber, password);
       
       if (!existingUser) {
         return { 
           data: null, 
-          error: { message: 'User not found. Please sign up first.' } 
+          error: { message: 'Invalid mobile number or password.' } 
         };
       }
 
-      // In a real app, you'd verify the password here
-      // For this localStorage version, we'll just check if user exists
       setCurrentUser(existingUser);
       setUser(existingUser);
       
@@ -55,6 +53,7 @@ export const useAuth = () => {
       const newUser: User = {
         id: generateId(),
         mobileNumber,
+        password,
         createdAt: new Date().toISOString(),
       };
 
