@@ -4,6 +4,12 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FileText, Upload, Download } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { getUserDocuments, saveDocument, generateId } from "@/lib/localStorage";
@@ -183,16 +189,9 @@ const Index = () => {
       {/* Recent Projects Section */}
       <section className="py-12">
         <div className="container px-4">
-          <div className="mb-8 flex items-center justify-between gap-4">
+          <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
             <h2 className="text-3xl font-bold">Recent Projects</h2>
             <div className="flex items-center gap-2">
-              <input
-                ref={importInputRef}
-                type="file"
-                accept=".json"
-                onChange={handleImportBackup}
-                className="hidden"
-              />
               <input
                 ref={importDocInputRef}
                 type="file"
@@ -201,40 +200,42 @@ const Index = () => {
                 className="hidden"
               />
               <Button
-                variant="outline"
-                size="sm"
+                variant="default"
+                size="default"
                 onClick={() => importDocInputRef.current?.click()}
                 className="gap-2"
               >
                 <Upload className="h-4 w-4" />
-                Import Doc
+                Import Project
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => importInputRef.current?.click()}
-                className="gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Import Backup
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportBackup}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export Backup
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAutoBackups(true)}
-                className="gap-2"
-              >
-                Auto-Backups
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="default" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    Backup Options
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleExportBackup}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export All Projects
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => importInputRef.current?.click()}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import All Projects
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowAutoBackups(true)}>
+                    View Auto-Backups
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportBackup}
+                className="hidden"
+              />
             </div>
           </div>
           <div className="mb-4 relative w-full max-w-sm">
