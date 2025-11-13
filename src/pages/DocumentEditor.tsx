@@ -42,6 +42,7 @@ interface Block {
   type: "paragraph" | "h1" | "h2" | "h3" | "image" | "pdf" | "link" | "video";
   content: string;
   attachmentData?: string; // For storing file data
+  imageSize?: "small" | "medium" | "large" | "full"; // For image sizing
 }
 
 interface Section {
@@ -80,6 +81,9 @@ const DocumentEditor = () => {
   const [deleteSectionId, setDeleteSectionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const loadedDocIdRef = useRef<string | null>(null);
+  const [imageSizeDialogOpen, setImageSizeDialogOpen] = useState(false);
+  const [pendingImageData, setPendingImageData] = useState<{file: File, data: string} | null>(null);
+  const [editingImageBlockId, setEditingImageBlockId] = useState<string | null>(null);
 
   // Load document from database
   useEffect(() => {
@@ -407,24 +411,69 @@ const DocumentEditor = () => {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const newBlock: Block = {
-        id: Date.now().toString(),
-        type: pendingAttachmentType,
-        content: file.name,
-        attachmentData: reader.result as string,
-      };
+      if (pendingAttachmentType === "image") {
+        // For images, show size picker dialog
+        setPendingImageData({ file, data: reader.result as string });
+        setImageSizeDialogOpen(true);
+      } else {
+        // For PDFs and videos, add directly
+        const newBlock: Block = {
+          id: Date.now().toString(),
+          type: pendingAttachmentType,
+          content: file.name,
+          attachmentData: reader.result as string,
+        };
 
-      updateSection(currentSection.id, "content", [...currentSection.content, newBlock]);
-      
-      toast({
-        title: `${pendingAttachmentType.charAt(0).toUpperCase() + pendingAttachmentType.slice(1)} added`,
-        description: `${file.name} has been added to the document.`,
-      });
-      
-      setPendingAttachmentType(null);
+        updateSection(currentSection.id, "content", [...currentSection.content, newBlock]);
+        
+        toast({
+          title: `${pendingAttachmentType.charAt(0).toUpperCase() + pendingAttachmentType.slice(1)} added`,
+          description: `${file.name} has been added to the document.`,
+        });
+        
+        setPendingAttachmentType(null);
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = "";
+  };
+
+  const addImageWithSize = (size: "small" | "medium" | "large" | "full") => {
+    if (!pendingImageData || !currentSection) return;
+
+    const newBlock: Block = {
+      id: Date.now().toString(),
+      type: "image",
+      content: pendingImageData.file.name,
+      attachmentData: pendingImageData.data,
+      imageSize: size,
+    };
+
+    updateSection(currentSection.id, "content", [...currentSection.content, newBlock]);
+    
+    toast({
+      title: "Image added",
+      description: `${pendingImageData.file.name} has been added to the document.`,
+    });
+    
+    setPendingImageData(null);
+    setPendingAttachmentType(null);
+    setImageSizeDialogOpen(false);
+  };
+
+  const updateImageSize = (blockId: string, size: "small" | "medium" | "large" | "full") => {
+    if (!currentSection) return;
+
+    const updatedContent = currentSection.content.map((block) =>
+      block.id === blockId ? { ...block, imageSize: size } : block
+    );
+    updateSection(currentSection.id, "content", updatedContent);
+    setEditingImageBlockId(null);
+    
+    toast({
+      title: "Image size updated",
+      description: "The image size has been changed.",
+    });
   };
 
 
@@ -550,7 +599,10 @@ const DocumentEditor = () => {
         return `<h3 class="text-lg sm:text-xl md:text-2xl font-bold mb-2">${escapeHtml(block.content)}</h3>`;
       }
       if (block.type === "image" && block.attachmentData) {
-        return `<div class="my-4"><img src="${block.attachmentData}" alt="${escapeHtml(block.content)}" class="w-full max-w-full h-auto rounded-lg border" style="box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08);"/><p class="mt-2 text-xs sm:text-sm text-gray-500">${escapeHtml(block.content)}</p></div>`;
+        const sizeClass = block.imageSize === "small" ? "max-w-xs" : 
+                         block.imageSize === "medium" ? "max-w-md" :
+                         block.imageSize === "large" ? "max-w-2xl" : "max-w-full";
+        return `<div class="my-4"><img src="${block.attachmentData}" alt="${escapeHtml(block.content)}" class="w-full ${sizeClass} h-auto rounded-lg border" style="box-shadow: 0 4px 20px -2px rgba(142, 124, 195, 0.15);"/></div>`;
       }
       if (block.type === "pdf" && block.attachmentData) {
         return `<div class="my-4 rounded-lg border p-3 md:p-4 bg-gray-50"><div class="flex flex-col sm:flex-row items-start sm:items-center gap-3"><svg class="h-5 w-5 sm:h-6 sm:w-6 text-blue-700 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg><div class="flex-1 min-w-0"><p class="font-medium text-sm sm:text-base break-words">${escapeHtml(block.content)}</p><p class="text-xs sm:text-sm text-gray-500">PDF Document</p></div><a href="${block.attachmentData}" download="${escapeHtml(block.content)}" class="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-100 w-full sm:w-auto text-center flex-shrink-0">Download</a></div></div>`;
@@ -712,15 +764,16 @@ const DocumentEditor = () => {
     .sidebar-btn { 
       position: relative;
       overflow: hidden;
+      transition: all 0.2s ease;
     }
     .sidebar-btn:hover { 
-      background: #f3f4f6 !important;
-      color: #374151 !important;
+      background: hsl(258 30% 96%) !important;
+      color: hsl(258 63% 29%) !important;
     }
     .sidebar-btn.active { 
-      background: #f3f4f6 !important;
+      background: hsl(258 30% 96%) !important;
       font-weight: 600 !important;
-      color: #1e3a8a !important;
+      color: hsl(258 63% 29%) !important;
     }
     
     .section-content { display: none; }
@@ -791,9 +844,9 @@ const DocumentEditor = () => {
 
   <div class="flex overflow-hidden">
     <!-- Sidebar - Hidden on mobile -->
-    <aside id="sidebar" class="hidden md:block w-64 border-r bg-gray-50 h-[calc(100vh-4rem)] overflow-y-auto">
+    <aside id="sidebar" class="hidden md:block w-72 border-r h-[calc(100vh-4rem)] overflow-y-auto" style="background: hsl(258 30% 98%);">
       <div class="p-4">
-        <h2 class="mb-4 text-lg font-bold">${escapeHtml(title)}</h2>
+        <h2 class="mb-4 text-lg font-bold" style="color: hsl(258 63% 29%);">${escapeHtml(title)}</h2>
         <nav class="space-y-1" id="sidebarNav">
           ${renderSidebarNav(sections, 0)}
         </nav>
@@ -1172,13 +1225,57 @@ const DocumentEditor = () => {
                             />
                           )}
                           {block.type === "image" && block.attachmentData && (
-                            <div className="my-4">
+                            <div 
+                              className="my-4 group/image relative"
+                              onMouseEnter={() => setEditingImageBlockId(block.id)}
+                              onMouseLeave={() => setEditingImageBlockId(null)}
+                            >
                               <img 
                                 src={block.attachmentData} 
                                 alt={block.content}
-                                className="max-w-full rounded-lg border shadow-card"
+                                className={`rounded-lg border shadow-card ${
+                                  block.imageSize === "small" ? "max-w-xs" :
+                                  block.imageSize === "medium" ? "max-w-md" :
+                                  block.imageSize === "large" ? "max-w-2xl" :
+                                  "max-w-full"
+                                }`}
                               />
-                              <p className="mt-2 text-sm text-muted-foreground">{block.content}</p>
+                              {editingImageBlockId === block.id && (
+                                <div className="absolute top-2 right-2 flex gap-1 bg-background/95 backdrop-blur-sm border rounded-md p-1 shadow-lg">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-8 px-2 text-xs ${block.imageSize === "small" ? "bg-muted" : ""}`}
+                                    onClick={() => updateImageSize(block.id, "small")}
+                                  >
+                                    Small
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-8 px-2 text-xs ${block.imageSize === "medium" ? "bg-muted" : ""}`}
+                                    onClick={() => updateImageSize(block.id, "medium")}
+                                  >
+                                    Medium
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-8 px-2 text-xs ${block.imageSize === "large" ? "bg-muted" : ""}`}
+                                    onClick={() => updateImageSize(block.id, "large")}
+                                  >
+                                    Large
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-8 px-2 text-xs ${block.imageSize === "full" ? "bg-muted" : ""}`}
+                                    onClick={() => updateImageSize(block.id, "full")}
+                                  >
+                                    Full
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                           )}
                           {block.type === "pdf" && block.attachmentData && (
@@ -1411,6 +1508,55 @@ const DocumentEditor = () => {
         </main>
 
       </div>
+
+      {/* Image Size Selection Dialog */}
+      <AlertDialog open={imageSizeDialogOpen} onOpenChange={setImageSizeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Select Image Size</AlertDialogTitle>
+            <AlertDialogDescription>
+              Choose the size for the image in your document.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-4">
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col gap-1"
+              onClick={() => addImageWithSize("small")}
+            >
+              <span className="font-semibold">Small</span>
+              <span className="text-xs text-muted-foreground">320px width</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col gap-1"
+              onClick={() => addImageWithSize("medium")}
+            >
+              <span className="font-semibold">Medium</span>
+              <span className="text-xs text-muted-foreground">448px width</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col gap-1"
+              onClick={() => addImageWithSize("large")}
+            >
+              <span className="font-semibold">Large</span>
+              <span className="text-xs text-muted-foreground">672px width</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-20 flex flex-col gap-1"
+              onClick={() => addImageWithSize("full")}
+            >
+              <span className="font-semibold">Full Width</span>
+              <span className="text-xs text-muted-foreground">100% width</span>
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Block Confirmation Dialog */}
       <AlertDialog open={deleteConfirmId !== null} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
