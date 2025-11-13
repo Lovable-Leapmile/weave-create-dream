@@ -28,13 +28,23 @@ export const useAuth = () => {
   }, []);
 
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  const withJitter = (baseMs: number, attempt: number) => {
+    const backoff = baseMs * Math.pow(2, attempt);
+    const jitter = Math.floor(Math.random() * 250);
+    return Math.min(4000, backoff + jitter);
+  };
+  const isTransientError = (error: any) => {
+    const status = (error as any)?.status;
+    const msg = String((error as any)?.message || "");
+    return [429, 502, 503, 504].includes(status) || /Service Unavailable|network|fetch failed|ECONNRESET|timeout/i.test(msg);
+  };
 
   const signIn = async (mobileNumber: string, password: string) => {
     // Use mobile number as email (format: mobilenumber@app.local)
     const email = `${mobileNumber}@app.local`;
 
     let lastError: any = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -44,8 +54,8 @@ export const useAuth = () => {
 
       lastError = error;
       // Retry on transient backend errors
-      if ((error as any)?.status === 503 || /Service Unavailable|network|fetch failed/i.test(error.message)) {
-        await delay(400 * Math.pow(2, attempt));
+      if (isTransientError(error)) {
+        await delay(withJitter(500, attempt));
         continue;
       }
       break;
@@ -61,7 +71,7 @@ export const useAuth = () => {
     const email = `${mobileNumber}@app.local`;
 
     let lastError: any = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -74,8 +84,8 @@ export const useAuth = () => {
       if (!error) return { data, error: null };
 
       lastError = error;
-      if ((error as any)?.status === 503 || /Service Unavailable|network|fetch failed/i.test(error.message)) {
-        await delay(400 * Math.pow(2, attempt));
+      if (isTransientError(error)) {
+        await delay(withJitter(500, attempt));
         continue;
       }
       break;
