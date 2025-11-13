@@ -7,8 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { LucideIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { getDocumentById } from "@/lib/localStorage";
 
 interface Block {
   id: string;
@@ -46,27 +45,22 @@ const DocumentPreview = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const load = async () => {
+    const load = () => {
       if (!id) return;
-      // Load latest from backend to reflect saved editor content
-      const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+      
+      // Load from localStorage
+      const doc = getDocumentById(id);
 
-      if (error) {
-        console.error("Preview load error:", error);
+      if (!doc) {
+        console.error("Preview load error: Document not found");
         return;
       }
 
-      if (data) {
-        setTitle(data.title || "Untitled Document");
-        const content = (data.content as { sections?: Section[] }) || {};
-        const loadedSections = content.sections || [{ id: "1", title: "Introduction", content: [] }];
-        setSections(loadedSections);
-        if (loadedSections.length > 0) setActiveSection(loadedSections[0].id);
-      }
+      setTitle(doc.title || "Untitled Document");
+      const content = (doc.content as { sections?: Section[] }) || {};
+      const loadedSections = content.sections || [{ id: "1", title: "Introduction", content: [] }];
+      setSections(loadedSections);
+      if (loadedSections.length > 0) setActiveSection(loadedSections[0].id);
     };
     load();
   }, [id]);

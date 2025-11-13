@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FileText, Zap, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getUserDocuments } from "@/lib/localStorage";
+
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [recentProjects, setRecentProjects] = useState<Array<{
@@ -18,32 +19,24 @@ const Index = () => {
   }>>([]);
   const { user } = useAuth();
 
-  // Load projects from database
-  const loadProjects = async () => {
+  // Load projects from localStorage
+  const loadProjects = () => {
     if (!user) return;
 
-    const { data, error } = await supabase
-      .from("documents")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("last_modified", { ascending: false });
+    const documents = getUserDocuments(user.id);
+    const sorted = documents.sort((a, b) => 
+      new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+    );
 
-    if (error) {
-      console.error("Error loading projects:", error);
-      return;
-    }
-
-    if (data) {
-      setRecentProjects(
-        data.map((doc) => ({
-          id: doc.id,
-          title: doc.title,
-          description: doc.description || "No description",
-          lastModified: new Date(doc.last_modified).toLocaleString(),
-          author: user.email || "User",
-        }))
-      );
-    }
+    setRecentProjects(
+      sorted.map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        description: doc.description || "No description",
+        lastModified: new Date(doc.lastModified).toLocaleString(),
+        author: user.mobileNumber || "User",
+      }))
+    );
   };
 
   useEffect(() => {

@@ -1,119 +1,92 @@
 import { useEffect, useState } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  getCurrentUser, 
+  setCurrentUser, 
+  findUserByMobile, 
+  saveUser, 
+  generateId,
+  type User 
+} from '@/lib/localStorage';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Check for existing user session
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setLoading(false);
   }, []);
 
-  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-  const withJitter = (baseMs: number, attempt: number) => {
-    const backoff = baseMs * Math.pow(2, attempt);
-    const jitter = Math.floor(Math.random() * 250);
-    return Math.min(4000, backoff + jitter);
-  };
-  const isTransientError = (error: any) => {
-    const status = (error as any)?.status;
-    const msg = String((error as any)?.message || "");
-    return [429, 502, 503, 504].includes(status) || /Service Unavailable|network|fetch failed|ECONNRESET|timeout/i.test(msg);
-  };
-
   const signIn = async (mobileNumber: string, password: string) => {
-    // Use mobile number as email (format: mobilenumber@app.local)
-    const email = `${mobileNumber}@app.local`;
-
-    let lastError: any = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (!error) return { data, error: null };
-
-      lastError = error;
-      // Retry on transient backend errors
-      if (isTransientError(error)) {
-        await delay(withJitter(500, attempt));
-        continue;
+    try {
+      const existingUser = findUserByMobile(mobileNumber);
+      
+      if (!existingUser) {
+        return { 
+          data: null, 
+          error: { message: 'User not found. Please sign up first.' } 
+        };
       }
-      break;
-    }
 
-    return { data: null, error: lastError };
+      // In a real app, you'd verify the password here
+      // For this localStorage version, we'll just check if user exists
+      setCurrentUser(existingUser);
+      setUser(existingUser);
+      
+      return { data: { user: existingUser }, error: null };
+    } catch (error: any) {
+      return { data: null, error: { message: error.message } };
+    }
   };
 
   const signUp = async (mobileNumber: string, password: string) => {
-    // Include base path in redirect URL for email redirects
-    const baseUrl = import.meta.env.BASE_URL;
-    const redirectUrl = `${window.location.origin}${baseUrl}`;
-    const email = `${mobileNumber}@app.local`;
-
-    let lastError: any = null;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: { mobile_number: mobileNumber },
-        },
-      });
-
-      if (!error) return { data, error: null };
-
-      lastError = error;
-      if (isTransientError(error)) {
-        await delay(withJitter(500, attempt));
-        continue;
+    try {
+      const existingUser = findUserByMobile(mobileNumber);
+      
+      if (existingUser) {
+        return { 
+          data: null, 
+          error: { message: 'User already exists. Please sign in.' } 
+        };
       }
-      break;
-    }
 
-    return { data: null, error: lastError };
+      const newUser: User = {
+        id: generateId(),
+        mobileNumber,
+        createdAt: new Date().toISOString(),
+      };
+
+      saveUser(newUser);
+      setCurrentUser(newUser);
+      setUser(newUser);
+      
+      return { data: { user: newUser }, error: null };
+    } catch (error: any) {
+      return { data: null, error: { message: error.message } };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      setCurrentUser(null);
+      setUser(null);
+      return { error: null };
+    } catch (error: any) {
+      return { error: { message: error.message } };
+    }
   };
 
-  // Utility to clear any stale local tokens that can trigger infinite refresh loops
   const resetAuth = async () => {
     try {
-      await supabase.auth.signOut();
-    } catch {}
-    try {
-      Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith('sb-')) localStorage.removeItem(k);
-      });
+      setCurrentUser(null);
+      setUser(null);
     } catch {}
   };
 
   return {
     user,
-    session,
     loading,
     signIn,
     signUp,

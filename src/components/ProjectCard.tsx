@@ -19,8 +19,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { getDocumentById, saveDocument as saveToLocalStorage, deleteDocument, generateId, type Document } from "@/lib/localStorage";
 
 interface ProjectCardProps {
   id: string;
@@ -40,84 +40,70 @@ export const ProjectCard = ({ id, title, description, lastModified, author, onUp
     navigate(`/editor/${id}`);
   };
 
-  const handleDuplicate = async () => {
+  const handleDuplicate = () => {
     try {
-      // Get the original document from database
-      const { data: originalDoc, error: fetchError } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("id", id)
-        .single();
+      // Get the original document from localStorage
+      const originalDoc = getDocumentById(id);
 
-      if (fetchError) throw fetchError;
-
-      if (originalDoc) {
-        // Create a duplicate
-        const { error: insertError } = await supabase
-          .from("documents")
-          .insert({
-            user_id: originalDoc.user_id,
-            title: `${originalDoc.title} (Copy)`,
-            description: originalDoc.description,
-            content: originalDoc.content,
-          });
-
-        if (insertError) throw insertError;
-
-        toast.success("Project duplicated successfully");
-        onUpdate?.();
+      if (!originalDoc) {
+        toast.error("Original document not found");
+        return;
       }
+
+      // Create a duplicate
+      const newDoc: Document = {
+        ...originalDoc,
+        id: generateId(),
+        title: `${originalDoc.title} (Copy)`,
+        lastModified: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      saveToLocalStorage(newDoc);
+      toast.success("Project duplicated successfully");
+      onUpdate?.();
     } catch (error) {
       console.error("Error duplicating project:", error);
       toast.error("Failed to duplicate project");
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = () => {
     try {
-      const { data: docData, error } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const docData = getDocumentById(id);
 
-      if (error) throw error;
-
-      if (docData) {
-        const exportData = {
-          title: docData.title,
-          description: docData.description,
-          content: docData.content,
-          lastModified: docData.last_modified,
-        };
-
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${title.replace(/\s+/g, '-')}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success("Project exported successfully");
+      if (!docData) {
+        toast.error("Document not found");
+        return;
       }
+
+      const exportData = {
+        title: docData.title,
+        description: docData.description,
+        content: docData.content,
+        lastModified: docData.lastModified,
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/\s+/g, '-')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Project exported successfully");
     } catch (error) {
       console.error("Error exporting project:", error);
       toast.error("Failed to export project");
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from("documents")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
+      deleteDocument(id);
       toast.success("Project deleted successfully");
       setShowDeleteDialog(false);
       onUpdate?.();

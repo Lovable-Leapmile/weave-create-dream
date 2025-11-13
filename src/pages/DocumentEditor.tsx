@@ -34,8 +34,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getDocumentById, saveDocument as saveToLocalStorage, generateId, type Document } from "@/lib/localStorage";
 
 interface Block {
   id: string;
@@ -85,9 +85,9 @@ const DocumentEditor = () => {
   const [pendingImageData, setPendingImageData] = useState<{file: File, data: string} | null>(null);
   const [editingImageBlockId, setEditingImageBlockId] = useState<string | null>(null);
 
-  // Load document from database
+  // Load document from localStorage
   useEffect(() => {
-    const loadDocument = async () => {
+    const loadDocument = () => {
       if (!user || !id || isLoading) return;
       
       // Prevent loading the same document multiple times
@@ -98,50 +98,32 @@ const DocumentEditor = () => {
 
       if (id === "new") {
         // Create new document
-        const { data, error } = await supabase
-          .from("documents")
-          .insert({
-            user_id: user.id,
-            title: "Untitled Document",
-            description: "",
-            content: { sections: [{ id: "1", title: "Introduction", content: [] }] } as any,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Error creating document:", error);
-          toast({
-            title: "Error",
-            description: "Failed to create document.",
-            variant: "destructive",
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        if (data) {
-          navigate(`/editor/${data.id}`, { replace: true });
-        }
+        const newId = generateId();
+        const newDoc: Document = {
+          id: newId,
+          userId: user.id,
+          title: "Untitled Document",
+          description: "",
+          content: { sections: [{ id: "1", title: "Introduction", content: [] }] },
+          lastModified: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        };
+        
+        saveToLocalStorage(newDoc);
+        navigate(`/editor/${newId}`, { replace: true });
       } else {
         // Load existing document
-        const { data, error } = await supabase
-          .from("documents")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (error) {
-          console.error("Error loading document:", error);
+        const doc = getDocumentById(id);
+        
+        if (!doc) {
+          console.error("Document not found");
           setIsLoading(false);
           return;
         }
 
-        if (data) {
-          setTitle(data.title);
-          const content = data.content as { sections?: Section[] };
-          setSections(content.sections || [{ id: "1", title: "Introduction", content: [] }]);
-        }
+        setTitle(doc.title);
+        const content = doc.content as { sections?: Section[] };
+        setSections(content.sections || [{ id: "1", title: "Introduction", content: [] }]);
       }
       
       setIsLoading(false);
@@ -150,22 +132,18 @@ const DocumentEditor = () => {
     loadDocument();
   }, [id, user]);
 
-  // Auto-save document to database
+  // Auto-save document to localStorage
   useEffect(() => {
     if (!user || !id || id === "new") return;
 
-    const autoSave = setTimeout(async () => {
-      try {
-        await performWithRetry(saveDocumentCore, 3, 400);
-      } catch (error) {
-        console.error("Auto-save error after retries:", error);
-      }
+    const autoSave = setTimeout(() => {
+      saveDocumentCore();
     }, 1200);
 
     return () => clearTimeout(autoSave);
   }, [title, sections, id, user]);
 
-  const saveDocument = async () => {
+  const saveDocument = () => {
     if (!user) {
       toast({
         title: "Authentication required",
@@ -184,16 +162,16 @@ const DocumentEditor = () => {
     }
 
     try {
-      await performWithRetry(saveDocumentCore, 3, 400);
+      saveDocumentCore();
       toast({
         title: "Document saved",
         description: "Your changes have been saved successfully.",
       });
     } catch (err: any) {
-      console.error("Save error after retries:", err);
+      console.error("Save error:", err);
       toast({
         title: "Save failed",
-        description: "We couldn't reach the backend. Your edits are still here and we'll retry shortly.",
+        description: "Failed to save the document.",
         variant: "destructive",
       });
     }
@@ -465,22 +443,21 @@ const DocumentEditor = () => {
   };
 
   // Core update call used by both auto-save and explicit Save
-  const saveDocumentCore = async () => {
+  const saveDocumentCore = () => {
     if (!user || !id || id === "new") return;
     const description = sections[0]?.content[0]?.content?.substring(0, 100) || "";
 
-    const { error } = await supabase
-      .from("documents")
-      .update({
-        title,
-        description,
-        content: { sections } as any,
-        last_modified: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .eq("user_id", user.id);
+    const doc: Document = {
+      id,
+      userId: user.id,
+      title,
+      description,
+      content: { sections },
+      lastModified: new Date().toISOString(),
+      createdAt: getDocumentById(id)?.createdAt || new Date().toISOString(),
+    };
 
-    if (error) throw new Error(error.message);
+    saveToLocalStorage(doc);
   };
 
 
