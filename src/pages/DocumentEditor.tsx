@@ -20,6 +20,8 @@ import {
   Code,
   X,
   AlertCircle,
+  Table as TableIcon,
+  List,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -44,16 +46,33 @@ import {
   getAssetDataUrl,
 } from "@/lib/assetStorage";
 import { startAutoBackup, stopAutoBackup } from "@/lib/backup";
+import { TextFormattingToolbar } from "@/components/TextFormattingToolbar";
+
+interface TableCell {
+  content: string;
+  formatting?: {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+  };
+}
 
 interface Block {
   id: string;
-  type: "paragraph" | "h1" | "h2" | "h3" | "image" | "pdf" | "link" | "video";
+  type: "paragraph" | "h1" | "h2" | "h3" | "image" | "pdf" | "link" | "video" | "table" | "bulletList";
   content: string;
   attachmentId?: string;
   attachmentName?: string;
   attachmentType?: string;
   attachmentData?: string; // Object URL for display
   imageSize?: "small" | "medium" | "large" | "full"; // For image sizing
+  tableData?: TableCell[][];
+  bulletStyle?: "disc" | "circle" | "square" | "decimal";
+  formatting?: {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+  };
 }
 
 interface Section {
@@ -88,6 +107,11 @@ const DocumentEditor = () => {
   const assetUrlCacheRef = useRef<Map<string, string>>(new Map());
   const pendingImageRef = useRef<{ previewUrl: string } | null>(null);
   const [editingImageBlockId, setEditingImageBlockId] = useState<string | null>(null);
+  const [textSelection, setTextSelection] = useState<{
+    blockId: string;
+    position: { x: number; y: number };
+  } | null>(null);
+  const [editingTableBlock, setEditingTableBlock] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -484,6 +508,15 @@ const DocumentEditor = () => {
       id: Date.now().toString(),
       type,
       content: "",
+      ...(type === "table" && {
+        tableData: [
+          [{ content: "" }, { content: "" }],
+          [{ content: "" }, { content: "" }],
+        ],
+      }),
+      ...(type === "bulletList" && {
+        bulletStyle: "disc" as const,
+      }),
     };
 
     const section = findSection(sectionId);
@@ -535,6 +568,110 @@ const DocumentEditor = () => {
       );
       updateSection(sectionId, "content", updatedContent);
     }
+  };
+
+  const updateTableCell = (sectionId: string, blockId: string, rowIndex: number, colIndex: number, content: string) => {
+    const section = findSection(sectionId);
+    if (section) {
+      const updatedContent = section.content.map((block) => {
+        if (block.id === blockId && block.tableData) {
+          const newTableData = block.tableData.map((row, rIdx) =>
+            rIdx === rowIndex
+              ? row.map((cell, cIdx) => (cIdx === colIndex ? { ...cell, content } : cell))
+              : row
+          );
+          return { ...block, tableData: newTableData };
+        }
+        return block;
+      });
+      updateSection(sectionId, "content", updatedContent);
+    }
+  };
+
+  const addTableRow = (sectionId: string, blockId: string) => {
+    const section = findSection(sectionId);
+    if (section) {
+      const updatedContent = section.content.map((block) => {
+        if (block.id === blockId && block.tableData) {
+          const colCount = block.tableData[0]?.length || 2;
+          const newRow = Array(colCount).fill(null).map(() => ({ content: "" }));
+          return { ...block, tableData: [...block.tableData, newRow] };
+        }
+        return block;
+      });
+      updateSection(sectionId, "content", updatedContent);
+    }
+  };
+
+  const addTableColumn = (sectionId: string, blockId: string) => {
+    const section = findSection(sectionId);
+    if (section) {
+      const updatedContent = section.content.map((block) => {
+        if (block.id === blockId && block.tableData) {
+          const newTableData = block.tableData.map((row) => [...row, { content: "" }]);
+          return { ...block, tableData: newTableData };
+        }
+        return block;
+      });
+      updateSection(sectionId, "content", updatedContent);
+    }
+  };
+
+  const removeTableRow = (sectionId: string, blockId: string) => {
+    const section = findSection(sectionId);
+    if (section) {
+      const updatedContent = section.content.map((block) => {
+        if (block.id === blockId && block.tableData && block.tableData.length > 1) {
+          const newTableData = block.tableData.slice(0, -1);
+          return { ...block, tableData: newTableData };
+        }
+        return block;
+      });
+      updateSection(sectionId, "content", updatedContent);
+    }
+  };
+
+  const removeTableColumn = (sectionId: string, blockId: string) => {
+    const section = findSection(sectionId);
+    if (section) {
+      const updatedContent = section.content.map((block) => {
+        if (block.id === blockId && block.tableData && block.tableData[0]?.length > 1) {
+          const newTableData = block.tableData.map((row) => row.slice(0, -1));
+          return { ...block, tableData: newTableData };
+        }
+        return block;
+      });
+      updateSection(sectionId, "content", updatedContent);
+    }
+  };
+
+  const updateBulletStyle = (sectionId: string, blockId: string, style: "disc" | "circle" | "square" | "decimal") => {
+    const section = findSection(sectionId);
+    if (section) {
+      const updatedContent = section.content.map((block) =>
+        block.id === blockId ? { ...block, bulletStyle: style } : block
+      );
+      updateSection(sectionId, "content", updatedContent);
+    }
+  };
+
+  const handleTextSelection = (blockId: string, event: React.MouseEvent) => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setTextSelection({
+        blockId,
+        position: { x: rect.left + rect.width / 2, y: rect.top },
+      });
+    } else {
+      setTextSelection(null);
+    }
+  };
+
+  const applyTextFormatting = (format: "bold" | "italic" | "underline") => {
+    document.execCommand(format);
+    setTextSelection(null);
   };
 
   const deleteBlock = (sectionId: string, blockId: string) => {
@@ -1538,11 +1675,19 @@ const DocumentEditor = () => {
                             />
                           )}
                           {block.type === "paragraph" && (
-                            <Textarea
-                              value={block.content}
-                              onChange={(e) => updateBlock(currentSection.id, block.id, e.target.value)}
-                              className="min-h-[100px] resize-none border-0 p-0 text-base focus-visible:ring-0"
-                              placeholder="Start typing paragraph..."
+                            <div
+                              contentEditable
+                              suppressContentEditableWarning
+                              onBlur={(e) =>
+                                updateBlock(
+                                  currentSection.id,
+                                  block.id,
+                                  e.currentTarget.textContent || ""
+                                )
+                              }
+                              onMouseUp={(e) => handleTextSelection(block.id, e)}
+                              className="min-h-[100px] p-2 border-0 text-base outline-none focus:bg-muted/50 rounded"
+                              dangerouslySetInnerHTML={{ __html: block.content || "Start typing paragraph..." }}
                             />
                           )}
                           {block.type === "image" && block.attachmentData && (
@@ -1650,6 +1795,129 @@ const DocumentEditor = () => {
                             </div>
                           )}
                           
+                          {block.type === "table" && block.tableData && (
+                            <div className="my-4 relative">
+                              <div className="overflow-x-auto border rounded-lg">
+                                <table className="w-full">
+                                  <tbody>
+                                    {block.tableData.map((row, rowIndex) => (
+                                      <tr key={rowIndex} className="border-b last:border-b-0">
+                                        {row.map((cell, colIndex) => (
+                                          <td key={colIndex} className="border-r last:border-r-0 p-2">
+                                            <div
+                                              contentEditable
+                                              suppressContentEditableWarning
+                                              onBlur={(e) =>
+                                                updateTableCell(
+                                                  currentSection.id,
+                                                  block.id,
+                                                  rowIndex,
+                                                  colIndex,
+                                                  e.currentTarget.textContent || ""
+                                                )
+                                              }
+                                              onMouseUp={(e) => handleTextSelection(block.id, e)}
+                                              className="min-h-[40px] outline-none focus:bg-muted/50"
+                                            >
+                                              {cell.content}
+                                            </div>
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                              <div className="mt-2 flex gap-2 justify-end">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addTableRow(currentSection.id, block.id)}
+                                >
+                                  Add Row
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addTableColumn(currentSection.id, block.id)}
+                                >
+                                  Add Column
+                                </Button>
+                                {block.tableData.length > 1 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeTableRow(currentSection.id, block.id)}
+                                  >
+                                    Remove Row
+                                  </Button>
+                                )}
+                                {block.tableData[0]?.length > 1 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => removeTableColumn(currentSection.id, block.id)}
+                                  >
+                                    Remove Column
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {block.type === "bulletList" && (
+                            <div className="my-4">
+                              <div className="flex gap-2 mb-2">
+                                <Button
+                                  variant={block.bulletStyle === "disc" ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => updateBulletStyle(currentSection.id, block.id, "disc")}
+                                >
+                                  • Disc
+                                </Button>
+                                <Button
+                                  variant={block.bulletStyle === "circle" ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => updateBulletStyle(currentSection.id, block.id, "circle")}
+                                >
+                                  ○ Circle
+                                </Button>
+                                <Button
+                                  variant={block.bulletStyle === "square" ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => updateBulletStyle(currentSection.id, block.id, "square")}
+                                >
+                                  ▪ Square
+                                </Button>
+                                <Button
+                                  variant={block.bulletStyle === "decimal" ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => updateBulletStyle(currentSection.id, block.id, "decimal")}
+                                >
+                                  1. Decimal
+                                </Button>
+                              </div>
+                              <div
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={(e) =>
+                                  updateBlock(
+                                    currentSection.id,
+                                    block.id,
+                                    e.currentTarget.textContent || ""
+                                  )
+                                }
+                                onMouseUp={(e) => handleTextSelection(block.id, e)}
+                                className="min-h-[100px] p-4 border rounded-lg outline-none focus:bg-muted/50"
+                                style={{
+                                  listStyleType: block.bulletStyle || "disc",
+                                }}
+                              >
+                                {block.content || "Type bullet points here..."}
+                              </div>
+                            </div>
+                          )}
+                          
                           {/* Delete button */}
                           <Button
                             variant="ghost"
@@ -1736,6 +2004,23 @@ const DocumentEditor = () => {
                                     <Code className="h-4 w-4" />
                                     Video (MP4)
                                   </Button>
+                                  <Separator className="my-1" />
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start gap-2 text-sm"
+                                    onClick={() => addBlock(currentSection.id, "table", block.id)}
+                                  >
+                                    <TableIcon className="h-4 w-4" />
+                                    Table
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    className="justify-start gap-2 text-sm"
+                                    onClick={() => addBlock(currentSection.id, "bulletList", block.id)}
+                                  >
+                                    <List className="h-4 w-4" />
+                                    Bullet List
+                                  </Button>
                                 </div>
                               </PopoverContent>
                             </Popover>
@@ -1807,6 +2092,23 @@ const DocumentEditor = () => {
                             >
                               <Code className="h-4 w-4" />
                               Video (MP4)
+                            </Button>
+                            <Separator className="my-1" />
+                            <Button
+                              variant="ghost"
+                              className="justify-start gap-2"
+                              onClick={() => addBlock(currentSection.id, "table")}
+                            >
+                              <TableIcon className="h-4 w-4" />
+                              Table
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="justify-start gap-2"
+                              onClick={() => addBlock(currentSection.id, "bulletList")}
+                            >
+                              <List className="h-4 w-4" />
+                              Bullet List
                             </Button>
                           </div>
                         </Card>
@@ -1934,6 +2236,14 @@ const DocumentEditor = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Text Formatting Toolbar */}
+      {textSelection && (
+        <TextFormattingToolbar
+          position={textSelection.position}
+          onFormat={applyTextFormatting}
+        />
+      )}
     </div>
   );
 };

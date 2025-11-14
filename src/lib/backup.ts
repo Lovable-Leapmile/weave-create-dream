@@ -375,7 +375,7 @@ const importDocumentFromJson = async (file: File): Promise<Document> => {
   ) {
     throw new Error("Invalid document file format");
   }
-  return sanitizeDocumentForExport(data as Document);
+  return sanitizeDocumentForExport(data as unknown as Document);
 };
 
 const importDocumentFromZip = async (file: File): Promise<Document> => {
