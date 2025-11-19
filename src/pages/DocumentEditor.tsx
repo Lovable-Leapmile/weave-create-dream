@@ -70,6 +70,12 @@ import { startAutoBackup, stopAutoBackup } from "@/lib/backup";
 import { TextFormattingToolbar } from "@/components/TextFormattingToolbar";
 import JSZip from "jszip";
 import { getAsset } from "@/lib/assetStorage";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface TableCell {
   content: string;
@@ -1243,54 +1249,77 @@ const DocumentEditor = () => {
 
       return (
         <div key={section.id}>
-          <div
-            className={`group flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-muted ${depth > 0 ? 'border-l-2 border-primary/30 ml-2' : ''}`}
-            style={{ paddingLeft: `${depth * 12 + 8}px` }}
-          >
-            {hasChildren && (
-              <button
-                onClick={() => toggleSection(section.id)}
-                className="p-0.5 hover:bg-muted-foreground/20 rounded"
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <div
+                className={`group flex w-full items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-muted ${depth > 0 ? 'border-l-2 border-primary/30 ml-2' : ''}`}
+                style={{ paddingLeft: `${depth * 12 + 8}px` }}
               >
-                <ChevronRight
-                  className={`h-4 w-4 transition-transform ${
-                    isExpanded ? "rotate-90" : ""
-                  }`}
-                />
-              </button>
-            )}
-            <button
-              className={`flex flex-1 items-center gap-2 ${!hasChildren ? "ml-5" : ""}`}
-              onClick={() => setActiveSection(section.id)}
-            >
-              {(() => {
-                const IconComponent =
-                  depth === 0 ? getSectionIconComponent(section.title) : FileText;
-                return <IconComponent className="h-4 w-4 text-muted-foreground" />;
-              })()}
-              <span className={activeSection === section.id ? "font-semibold" : ""}>
-                {section.title}
-              </span>
-            </button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100"
-              onClick={() => addSubSection(section.id)}
-              title="Add sub-section"
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100"
-              onClick={() => setDeleteSectionId(section.id)}
-              title="Delete section"
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
+                {hasChildren && (
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="p-0.5 hover:bg-muted-foreground/20 rounded"
+                  >
+                    <ChevronRight
+                      className={`h-4 w-4 transition-transform ${
+                        isExpanded ? "rotate-90" : ""
+                      }`}
+                    />
+                  </button>
+                )}
+                <button
+                  className={`flex flex-1 items-center gap-2 ${!hasChildren ? "ml-5" : ""}`}
+                  onClick={() => setActiveSection(section.id)}
+                >
+                  {(() => {
+                    const IconComponent =
+                      depth === 0 ? getSectionIconComponent(section.title) : FileText;
+                    return <IconComponent className="h-4 w-4 text-muted-foreground" />;
+                  })()}
+                  <span className={activeSection === section.id ? "font-semibold" : ""}>
+                    {section.title}
+                  </span>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  onClick={() => addSubSection(section.id)}
+                  title="Add sub-section"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  onClick={() => setDeleteSectionId(section.id)}
+                  title="Delete section"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-48" align="start">
+              <ContextMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  addSubSection(section.id);
+                }}
+              >
+                Add sub-section
+              </ContextMenuItem>
+              <ContextMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setDeleteSectionId(section.id);
+                }}
+              >
+                Delete section
+              </ContextMenuItem>
+            </ContextMenuContent>
+          </ContextMenu>
           {hasChildren && isExpanded && (
             <div>
               {renderSections(section.children!, depth + 1)}
@@ -1649,6 +1678,8 @@ const DocumentEditor = () => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="https://leapmile-website.blr1.cdn.digitaloceanspaces.com/favicon_new.png">
+  <link rel="shortcut icon" href="https://leapmile-website.blr1.cdn.digitaloceanspaces.com/favicon_new.png">
   <title>${escapeHtml(title)}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -1808,27 +1839,31 @@ const DocumentEditor = () => {
     }
     .section-content.active { display: block; }
     .section-content a {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      color: hsl(258 63% 32%);
+      color: hsl(258 63% 28%);
       font-weight: 600;
       text-decoration: underline;
       text-decoration-thickness: 2px;
       text-underline-offset: 3px;
-      background: hsl(258 63% 45% / 0.12);
-      border-radius: 999px;
-      padding: 0 0.45rem;
-      transition: background 0.2s ease, color 0.2s ease;
+      transition: color 0.2s ease;
     }
     .section-content a:hover {
-      color: hsl(258 63% 24%);
-      background: hsl(258 63% 45% / 0.22);
+      color: hsl(258 63% 22%);
     }
     #mobileMenu { display: none; opacity: 0; transition: opacity 0.3s ease; }
     #mobileMenu.open { display: block; opacity: 1; }
-    #mobileMenuSidebar { transition: transform 0.3s ease; width: min(90vw, 320px); }
-    #mobileMenuSidebar.open { display: block !important; transform: translateX(0) !important; }
+    #mobileMenuSidebar {
+      transition: transform 0.3s ease;
+      width: clamp(280px, 90vw, 420px);
+      max-width: calc(100vw - 0.5rem);
+      height: 100vh;
+      border-top-right-radius: 20px;
+      border-bottom-right-radius: 20px;
+      display: none;
+    }
+    #mobileMenuSidebar.open {
+      display: block !important;
+      transform: translateX(0) !important;
+    }
     #mainContent {
       max-width: 960px;
       margin: 0 auto;
@@ -1927,7 +1962,9 @@ const DocumentEditor = () => {
         color: hsl(258 63% 29%);
       }
       #mobileMenuSidebar {
-        width: min(100vw, 360px);
+        width: calc(100vw - 0.75rem);
+        max-width: calc(100vw - 0.75rem);
+        border-radius: 0 18px 18px 0;
       }
       #mainContent {
         padding: 1.25rem 0.75rem 2.5rem !important;
@@ -1984,6 +2021,13 @@ const DocumentEditor = () => {
         padding-top: 1rem !important;
       }
     }
+    @media (max-width: 480px) {
+      #mobileMenuSidebar {
+        width: 100vw;
+        max-width: 100vw;
+        border-radius: 0;
+      }
+    }
   </style>
 </head>
 <body class="bg-white text-gray-800">
@@ -2037,19 +2081,21 @@ const DocumentEditor = () => {
   
   <!-- Mobile Menu Overlay -->
   <div id="mobileMenu" class="fixed inset-0 z-40 bg-black bg-opacity-50" style="display: none;"></div>
-  <div id="mobileMenuSidebar" class="fixed left-0 top-16 bottom-0 z-50 w-80 bg-gray-50 border-r shadow-lg overflow-hidden" style="display: none; transform: translateX(-100%);" onclick="event.stopPropagation();">
-    <div class="p-4 border-b bg-white sticky top-0 z-10">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold">${escapeHtml(title)}</h2>
-        <button onclick="closeMobileMenu(); event.stopPropagation();" class="p-2 hover:bg-gray-100 rounded-md">
-          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
+  <div id="mobileMenuSidebar" class="fixed inset-y-0 left-0 z-50 w-full max-w-sm bg-gray-50 border-r shadow-lg overflow-hidden md:hidden" style="display: none; transform: translateX(-100%);" onclick="event.stopPropagation();">
+    <div class="flex h-full flex-col">
+      <div class="p-4 border-b bg-white shrink-0">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold">${escapeHtml(title)}</h2>
+          <button onclick="closeMobileMenu(); event.stopPropagation();" class="p-2 hover:bg-gray-100 rounded-md">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
       </div>
-    </div>
-    <div class="overflow-y-auto h-[calc(100vh-5rem)] p-4" onclick="event.stopPropagation();">
-      <nav class="space-y-1" id="mobileSidebarNav">
-        ${renderSidebarNav(sections, 0)}
-      </nav>
+      <div class="mobile-sidebar-body flex-1 overflow-y-auto p-4" onclick="event.stopPropagation();">
+        <nav class="space-y-1" id="mobileSidebarNav">
+          ${renderSidebarNav(sections, 0)}
+        </nav>
+      </div>
     </div>
   </div>
 
