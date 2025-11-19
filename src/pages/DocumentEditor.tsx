@@ -1616,10 +1616,11 @@ const DocumentEditor = () => {
         const isExpanded = sectionsToExpand.has(section.id);
         const showIcon = depth === 0; // Only show icon for top-level sections
         const indentation = depth * 12 + 12;
+        const guideOffset = Math.max(12, indentation - 12);
         
         return `
           <div>
-            <div class="sidebar-item flex items-start w-full" data-depth="${depth}" style="padding-left: ${indentation}px;">
+            <div class="sidebar-item flex items-start w-full" data-depth="${depth}" style="--indent: ${indentation}px; --guide: ${guideOffset}px; padding-left: ${indentation}px;">
               <button onclick="showSection('${section.id}'); closeMobileMenu(); return false;" data-section="${section.id}" data-depth="${depth}"
                 class="sidebar-btn${isFirst ? ' active' : ''} flex-1 flex items-start gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-gray-100 ${isFirst ? 'bg-gray-100 font-semibold text-blue-800' : 'text-gray-600'}" style="text-align: left;">
                 ${showIcon ? getIconForSection(section.title) : ''}
@@ -1737,47 +1738,67 @@ const DocumentEditor = () => {
     /* Sidebar Navigation Styles */
     .sidebar-item {
       position: relative;
+      padding-right: 0.25rem;
+      isolation: isolate;
+    }
+    .sidebar-item[data-depth]:not([data-depth="0"])::before {
+      content: "";
+      position: absolute;
+      left: calc(var(--guide, 20px) - 2px);
+      top: -0.35rem;
+      bottom: -0.35rem;
+      width: 2px;
+      border-radius: 999px;
+      background: hsl(258 25% 88%);
+      transition: background 0.2s ease, opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .sidebar-item[data-depth]:not([data-depth="0"])::after {
+      content: "";
+      position: absolute;
+      left: calc(var(--guide, 20px) - 6px);
+      top: 0.85rem;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 2px solid hsl(258 20% 80%);
+      background: #fff;
+      box-shadow: 0 0 0 3px hsl(258 30% 98%);
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .sidebar-item.is-ancestor::before {
+      background: hsl(258 63% 50% / 0.35);
+    }
+    .sidebar-item.is-active::before {
+      background: hsl(258 63% 45%);
+    }
+    .sidebar-item.is-ancestor::after {
+      border-color: hsl(258 63% 50% / 0.5);
+      box-shadow: 0 0 0 3px hsl(258 63% 45% / 0.15);
+    }
+    .sidebar-item.is-active::after {
+      border-color: hsl(258 63% 45%);
+      background: hsl(258 63% 45%);
+      box-shadow: 0 0 0 4px hsl(258 63% 45% / 0.2);
+      transform: scale(1.12);
     }
     .sidebar-btn { 
       position: relative;
       overflow: hidden;
       transition: color 0.2s ease, background 0.2s ease;
+      z-index: 1;
     }
     .sidebar-btn:hover { 
       background: hsl(258 30% 96%) !important;
       color: hsl(258 63% 29%) !important;
     }
-    .sidebar-btn[data-depth]:not([data-depth="0"])::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0.35rem;
-      bottom: 0.35rem;
-      width: 3px;
-      border-radius: 999px;
-      background: hsl(258 63% 29% / 0.25);
-      opacity: 0;
-      transform: scaleY(0.4);
-      transform-origin: center;
-      transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
-      pointer-events: none;
-    }
-    .sidebar-btn[data-depth]:not([data-depth="0"]):hover::before,
-    .sidebar-btn[data-depth]:not([data-depth="0"]):focus-visible::before {
-      opacity: 0.6;
-      transform: scaleY(1);
-      background: hsl(258 63% 55% / 0.6);
-    }
     .sidebar-btn.active { 
       background: hsl(258 30% 96%) !important;
       font-weight: 600 !important;
       color: hsl(258 63% 29%) !important;
-    }
-    .sidebar-btn.active[data-depth]:not([data-depth="0"])::before {
-      opacity: 1;
-      transform: scaleY(1);
-      background: hsl(258 63% 45%);
-      box-shadow: 0 0 0 1px hsl(258 63% 29% / 0.15);
     }
     
     .section-content { 
@@ -1824,6 +1845,9 @@ const DocumentEditor = () => {
     @media (min-width: 769px) {
       #mobileMenu { display: none !important; }
       #mobileMenuSidebar { display: none !important; }
+      header nav a, header nav button {
+        white-space: nowrap;
+      }
     }
     @media (max-width: 640px) {
       body {
@@ -2183,6 +2207,9 @@ const DocumentEditor = () => {
         el.classList.remove('bg-gray-100', 'font-semibold', 'text-blue-800');
         el.classList.add('text-gray-600');
       });
+      document.querySelectorAll('.sidebar-item').forEach(el => {
+        el.classList.remove('is-active', 'is-ancestor');
+      });
       
       // Add active state to current section button in desktop sidebar
       const btn = document.querySelector('#sidebarNav [data-section="' + sectionId + '"]');
@@ -2190,6 +2217,10 @@ const DocumentEditor = () => {
         btn.classList.add('active');
         btn.classList.add('bg-gray-100', 'font-semibold', 'text-blue-800');
         btn.classList.remove('text-gray-600');
+        const desktopItem = btn.closest('.sidebar-item');
+        if (desktopItem) {
+          desktopItem.classList.add('is-active');
+        }
       }
       
       // Also update mobile sidebar button
@@ -2198,7 +2229,23 @@ const DocumentEditor = () => {
         mobileBtn.classList.add('active');
         mobileBtn.classList.add('bg-gray-100', 'font-semibold', 'text-blue-800');
         mobileBtn.classList.remove('text-gray-600');
+        const mobileItem = mobileBtn.closest('.sidebar-item');
+        if (mobileItem) {
+          mobileItem.classList.add('is-active');
+        }
       }
+
+      parentIds.forEach(parentId => {
+        ['#sidebarNav', '#mobileSidebarNav'].forEach(selector => {
+          const parentButton = document.querySelector(selector + ' [data-section="' + parentId + '"]');
+          if (parentButton) {
+            const parentItem = parentButton.closest('.sidebar-item');
+            if (parentItem) {
+              parentItem.classList.add('is-ancestor');
+            }
+          }
+        });
+      });
       
       currentSection = sectionId;
       
